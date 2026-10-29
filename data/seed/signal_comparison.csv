@@ -1,0 +1,1 @@
+observation_pair_id,spider,resource_url,prev_observation_id,curr_observation_id,prev_timestamp,curr_timestamp,prev_status,curr_status,prev_etag,curr_etag,prev_last_modified,curr_last_modified,validator_changed,body_changed,data_changed,classification,confidence,notes

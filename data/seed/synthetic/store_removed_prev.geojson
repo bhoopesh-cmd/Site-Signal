@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "a",
+      "properties": {
+        "ref": "a",
+        "name": "Store A",
+        "brand": "Store",
+        "addr:street_address": "1 Main St",
+        "addr:city": "City1",
+        "phone": null,
+        "@spider": "synthetic_spider"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "b",
+      "properties": {
+        "ref": "b",
+        "name": "Store B",
+        "brand": "Store",
+        "addr:street_address": "2 Main St",
+        "addr:city": "City1",
+        "phone": null,
+        "@spider": "synthetic_spider"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          3.0,
+          4.0
+        ]
+      }
+    }
+  ]
+}

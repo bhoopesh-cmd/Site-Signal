@@ -221,3 +221,55 @@ Provider webhook → Conditional HTTP → Sitemap/feed check → Direct API fetc
 - locations.geojson gitignored (111MB); regenerate via script
 - No numerical savings claims until supported by evaluation
 - Rate limits, robots.txt, and access restrictions respected throughout
+
+---
+
+## Step 3: Validate Change Detection Against Location Data — COMPLETE
+
+**Date:** 2026-10-29
+**Status:** Done
+
+### What was done
+- **Task 1: Historical location-change dataset** — 40,939 candidate changes from 91/100 spiders. HTTP Range requests used to extract from previous run zip (no 2.75GB download). match_method column added.
+- **Task 2: Conditional-request testing** — 117 resources tested. 13 returned 304 (10 ETag + 6 Last-Modified). 19 returned 200. Validator reliability unverified (single observation).
+- **Task 3: Live-observation process** — `scripts/live_observe.py` created. Append-only observations.jsonl. 5 resources observed in smoke test.
+- **Task 4: Signal comparison framework** — `scripts/signal_compare.py` created. 6-case classification framework. Reports "pending" with single observation.
+- **Task 5: Synthetic tests** — `scripts/synthetic_fixtures.py` + `tests/test_step3_synthetic.py`. 13 scenarios + 13 classification tests.
+- **Task 6: Report findings** — Updated PROGRESS.md.
+
+### New files
+- `scripts/live_observe.py` — repeatable live observation
+- `scripts/signal_compare.py` — 6-case signal comparison
+- `scripts/synthetic_fixtures.py` — synthetic test data generator
+- `tests/test_step3_synthetic.py` — 26 synthetic tests
+- `data/seed/observations.jsonl` — append-only observations
+- `data/seed/signal_comparison.csv` — signal comparison results
+- `data/seed/synthetic/` — synthetic test fixtures
+
+### Results
+| Metric | Value |
+|---|---|
+| Resources inventoried | 117 |
+| Verified location data | 71 |
+| Resources with ETag | 22 |
+| Resources with Last-Modified | 18 |
+| Conditional requests (304) | 13 |
+| Conditional requests (200) | 19 |
+| Historical changes | 40,939 |
+| Historical spiders found | 91/100 |
+| Provider groups | 98 |
+| Promising for monitoring | 14 |
+| Synthetic scenarios | 13 |
+| Tests | 76 (all passing) |
+
+### Key findings
+- Conditional requests work mechanically (13/30 returned 304)
+- Validator reliability unverified (single observation, no historical HTTP headers)
+- 38,948 "added" records likely ID renames, not genuine business changes
+- Provider sharing rare (1 multi-spider group: nandos)
+- Direct API endpoints most promising (3 nandos JSON APIs)
+- Live observation process established (append-only, resumable)
+- Signal comparison framework ready for multi-observation analysis
+
+### Recommendation
+Conditional HTTP should be used as a **verified-subset-only** strategy, not as a general fallback. Only 14 of 117 resources are "promising" (verified location data + ETag present). The remaining 103 resources require direct payload comparison, sitemap monitoring, or browser fallback. Live observation over multiple time periods is needed to validate ETag/Last-Modified reliability before trusting them for production monitoring.

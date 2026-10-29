@@ -1,0 +1,10 @@
+# Taste
+- Verifies actual API response schemas before coding parsers; builds parsers defensively with `.get()` defaults and validates downloaded data rather than assuming field names. Confidence: 0.85
+- Uses fallback matching (id → ref → fuzzy name/address → coords) and marks ambiguous comparisons as unresolved rather than relying on a single identifier. Confidence: 0.85
+- Prefers the assistant to explain what it is about to do before acting, and to back up confirmations with concrete evidence or command output rather than bare assertions. Confidence: 0.8
+- When doing QA/review sampling, wants diverse coverage that deliberately includes edge cases, and wants the assistant to proactively add any additional items worth inspecting rather than only what was asked. Confidence: 0.8
+- Preserves original data as-is; only derives representative values (e.g., lat/lon from geometry) when there is a clear, justified reason — a polygon vertex is not a store location, so don't fabricate coordinates from non-Point geometries. Confidence: 0.9
+- Doesn't discard weak validators automatically; weak ETags can still support conditional requests (If-None-Match), and the real test is whether the validator reliably tracks the resource. Confidence: 0.85
+- When probing POST endpoints, detecting the method alone isn't enough — the probe must also reproduce the necessary request body and parameters, otherwise it may fail or query the wrong data; respect the source's actual method, auth and rate limits, and never bypass protections or blindly convert POST to GET. Confidence: 0.85
+- Never treat an HTTP validator outcome (304/unchanged or 200/changed) as proof of the underlying location data's state; a validator reflects the server's view of the representation, so data changes require ground-truth comparison. Confidence: 0.9
+- Keep evidence streams (historical data diffs, live HTTP observations, synthetic tests) strictly separate and append-only; report only measured values, never fabricate or conflate evidence, and mark pending/unresolved cases as such instead of forcing a conclusion. Confidence: 0.85

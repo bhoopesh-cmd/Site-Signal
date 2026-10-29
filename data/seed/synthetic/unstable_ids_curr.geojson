@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "id_v2",
+      "properties": {
+        "ref": "id_v2",
+        "name": "Store A",
+        "brand": "Store",
+        "addr:street_address": "1 Main St",
+        "addr:city": "City1",
+        "phone": null,
+        "@spider": "synthetic_spider"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1.0,
+          2.0
+        ]
+      }
+    }
+  ]
+}
