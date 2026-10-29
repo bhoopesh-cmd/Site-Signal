@@ -1,0 +1,8 @@
+# Large raw data (keep local only)
+data/seed/raw/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+# OS
+.DS_Store
