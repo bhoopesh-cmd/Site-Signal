@@ -5,4 +5,4 @@ __pycache__/
 *.pyc
 .pytest_cache/
 # OS
-.DS_Store
+.DS_Storedata/seed/locations.geojson
