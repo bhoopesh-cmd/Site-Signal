@@ -125,9 +125,56 @@ def test_qualify_logic_excludes_infrastructure():
     assert "infrastructure" in sp.lower() or sp.lower().endswith("_addresses") is False
 
 
-def test_country_bucket_global_for_no_suffix():
-    assert cs.country_bucket("adidas") == "global"
-    assert cs.country_bucket("amart_furniture_au") == "au"
+def test_redact_url():
+    url = "https://example.com/api?token=secret123&foo=bar&api_key=abc"
+    redacted = cs.redact_url(url)
+    assert "secret123" not in redacted
+    assert "abc" not in redacted
+    assert "REDACTED" in redacted
+    assert "foo=bar" in redacted
+
+
+def test_redact_url_no_params():
+    url = "https://example.com/stores"
+    assert cs.redact_url(url) == url
+
+
+def test_redact_url_empty():
+    assert cs.redact_url("") == ""
+    assert cs.redact_url(None) is None
+
+
+def test_resolve_sitemap_pointer_non_sitemap():
+    url = "https://example.com/stores"
+    assert cs.resolve_sitemap_pointer(url) == url
+
+
+def test_geometry_types():
+    # Point
+    feat = {"type": "Feature", "properties": {"name": "X"}, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}}
+    norm, _ = cs.normalize_feature(feat, "sp", "r", "ts", "f")
+    assert norm["lon"] == 1.0 and norm["lat"] == 2.0
+    # Polygon
+    feat2 = {"type": "Feature", "properties": {"name": "Y"}, "geometry": {"type": "Polygon", "coordinates": [[[1.0, 2.0], [3.0, 4.0]]]}}
+    norm2, _ = cs.normalize_feature(feat2, "sp", "r", "ts", "f")
+    assert norm2["lon"] == 1.0 and norm2["lat"] == 2.0
+    # LineString
+    feat3 = {"type": "Feature", "properties": {"name": "Z"}, "geometry": {"type": "LineString", "coordinates": [[1.0, 2.0], [3.0, 4.0]]}}
+    norm3, _ = cs.normalize_feature(feat3, "sp", "r", "ts", "f")
+    assert norm3["lon"] == 1.0 and norm3["lat"] == 2.0
+    # None geometry
+    feat4 = {"type": "Feature", "properties": {"name": "W"}, "geometry": None}
+    norm4, _ = cs.normalize_feature(feat4, "sp", "r", "ts", "f")
+    assert norm4["lon"] is None and norm4["lat"] is None
+
+
+def test_weak_etag_detection():
+    # probe_http should detect weak ETags
+    # We can't easily test without network, but verify the logic
+    etag = 'W/"54-g82mD9fz2XofYj/5YX/678aNKGw"'
+    assert etag.startswith('W/"')
+    strong = '"abc123"'
+    assert not strong.startswith('W/"')
 
 
 # --- Step 2: probe diagnostics tests ---

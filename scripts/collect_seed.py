@@ -21,8 +21,16 @@ from urllib.parse import urlparse
 
 import requests
 
+TOKEN_RE = re.compile(r"(token|key|secret|password|auth|session|sid|api_key|apikey)=[^&]+", re.I)
+
+
+def redact_url(url):
+    if not url:
+        return url
+    return TOKEN_RE.sub(r"\1=REDACTED", url)
+
+
 LATEST_URL = "https://data.alltheplaces.xyz/runs/latest.json"
-HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
 GITHUB_RAW = "https://raw.githubusercontent.com/alltheplaces/alltheplaces/master/{}"
 USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"
 
@@ -105,20 +113,41 @@ def fetch_spider_source(filename, timeout=30):
 
 
 def resolve_sitemap_pointer(url, timeout=10):
-    """If url is a robots.txt sitemap pointer, fetch it and return the actual sitemap URL."""
-    if not url or not url.lower().endswith("robots.txt"):
+    """If url is a robots.txt sitemap pointer or sitemap index, resolve to actual sitemap URL."""
+    if not url:
         return url
-    try:
-        r = requests.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
-        if r.status_code == 200:
-            for line in r.text.splitlines():
-                line = line.strip()
-                if line.lower().startswith("sitemap:"):
-                    sitemap_url = line.split(":", 1)[1].strip() if ":" in line else ""
-                    if sitemap_url.startswith("http"):
-                        return sitemap_url
-    except Exception:
-        pass
+    # If it's a sitemap index, fetch and get first child sitemap
+    if url.lower().endswith("sitemap_index.xml") or url.lower().endswith("sitemap.xml"):
+        try:
+            r = requests.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
+            if r.status_code == 200:
+                # Check if it's a sitemap index (contains <sitemap> entries)
+                if "<sitemap>" in r.text.lower() or "<sitemap " in r.text.lower():
+                    # Extract first child sitemap
+                    import re as _re
+                    m = _re.search(r"<loc>\s*(https?://[^<]+)\s*</loc>", r.text, _re.I)
+                    if m:
+                        return m.group(1).strip()
+                # If it's a regular sitemap with <url> entries, it's already the right resource
+                if "<url>" in r.text.lower() or "<url " in r.text.lower():
+                    return url
+        except Exception:
+            pass
+        return url
+    # If it's robots.txt, fetch and extract Sitemap: directive
+    if url.lower().endswith("robots.txt"):
+        try:
+            r = requests.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
+            if r.status_code == 200:
+                for line in r.text.splitlines():
+                    line = line.strip()
+                    if line.lower().startswith("sitemap:"):
+                        sitemap_url = line.split(":", 1)[1].strip() if ":" in line else ""
+                        if sitemap_url.startswith("http"):
+                            # Recursively resolve if it's a sitemap index
+                            return resolve_sitemap_pointer(sitemap_url, timeout=timeout)
+        except Exception:
+            pass
     return url  # fallback to original
 
 
@@ -155,6 +184,11 @@ def analyze_source(source_text):
     low = source_text.lower()
     if any(k in low for k in ["zyte_api", "browserhtml", "browser_html", "playwright", "selenium", "render"]):
         info["rendering"] = "js"
+    # POST detection
+    if "FormRequest" in source_text or "requests.post" in low or 'method="POST"' in source_text or "method='POST'" in source_text:
+        info["http_method"] = "POST"
+    else:
+        info["http_method"] = "GET"
     # extraction method
     if "KiboSpider" in source_text:
         info["extraction_method"] = "kibo_storefinder"
@@ -187,7 +221,7 @@ def domain_of(url):
         return ""
 
 
-def probe_http(urls, timeout=15):
+def probe_http(urls, timeout=15, method="GET", headers_extra=None):
     results = []
     seen = set()
     for u in urls:
@@ -195,7 +229,7 @@ def probe_http(urls, timeout=15):
             continue
         seen.add(u)
         entry = {
-            "url": u,
+            "url": redact_url(u) if "redact_url" in globals() else u,
             "timestamp": now_iso(),
             "status": None,
             "final_url": None,
@@ -205,29 +239,77 @@ def probe_http(urls, timeout=15):
             "content_length": None,
             "content_type": None,
             "conditional_feasible": False,
+            "etag_strength": "none",
             "contains_location_data_directly": "unknown",
             "error": None,
+            "bytes_transferred": 0,
+            "elapsed_ms": 0,
+            "http_method": method,
         }
+        # Redact URL
         try:
-            r = requests.get(u, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
-            entry["status"] = r.status_code
-            entry["final_url"] = r.url
-            h = r.headers
-            entry["etag"] = h.get("ETag")
-            entry["last_modified"] = h.get("Last-Modified")
-            entry["cache_control"] = h.get("Cache-Control")
-            entry["content_length"] = h.get("Content-Length")
-            entry["content_type"] = h.get("Content-Type")
-            entry["conditional_feasible"] = bool(entry["etag"] or entry["last_modified"])
-            ct = (entry["content_type"] or "").lower()
-            if "json" in ct or "geojson" in ct:
-                entry["contains_location_data_directly"] = "likely"
-            elif "html" in ct:
-                entry["contains_location_data_directly"] = "maybe (html)"
-            else:
-                entry["contains_location_data_directly"] = "unknown"
-        except Exception as e:
-            entry["error"] = str(e)
+            entry["url"] = TOKEN_RE.sub(r"\1=REDACTED", u) if "TOKEN_RE" in globals() else u
+        except Exception:
+            pass
+        t0 = time.time()
+        retries = 0
+        max_retries = 3
+        while retries <= max_retries:
+            try:
+                hdrs = {"User-Agent": USER_AGENT}
+                if headers_extra:
+                    hdrs.update(headers_extra)
+                if method == "POST":
+                    r = requests.post(u, timeout=timeout, headers=hdrs, allow_redirects=True)
+                else:
+                    r = requests.get(u, timeout=timeout, headers=hdrs, allow_redirects=True)
+                entry["elapsed_ms"] = int((time.time() - t0) * 1000)
+                entry["status"] = r.status_code
+                entry["final_url"] = r.url
+                h = r.headers
+                entry["etag"] = h.get("ETag")
+                entry["last_modified"] = h.get("Last-Modified")
+                entry["cache_control"] = h.get("Cache-Control")
+                entry["content_length"] = h.get("Content-Length")
+                entry["content_type"] = h.get("Content-Type")
+                entry["bytes_transferred"] = len(r.content) if r.content else 0
+                entry["conditional_feasible"] = bool(entry["etag"] or entry["last_modified"])
+                # Weak ETag detection
+                if entry["etag"] and entry["etag"].startswith('W/"'):
+                    entry["etag_strength"] = "weak"
+                elif entry["etag"]:
+                    entry["etag_strength"] = "strong"
+                else:
+                    entry["etag_strength"] = "none"
+                ct = (entry["content_type"] or "").lower()
+                if "json" in ct or "geojson" in ct:
+                    entry["contains_location_data_directly"] = "likely"
+                elif "html" in ct:
+                    entry["contains_location_data_directly"] = "maybe (html)"
+                elif "xml" in ct:
+                    entry["contains_location_data_directly"] = "maybe (xml)"
+                else:
+                    entry["contains_location_data_directly"] = "unknown"
+                # Rate limit handling
+                if r.status_code == 429 or r.status_code == 503:
+                    retry_after = r.headers.get("Retry-After")
+                    wait = int(retry_after) if retry_after and retry_after.isdigit() else (2 ** retries)
+                    if retries < max_retries:
+                        time.sleep(min(wait, 30))
+                        retries += 1
+                        continue
+                break
+            except Exception as e:
+                entry["error"] = str(e)
+                entry["elapsed_ms"] = int((time.time() - t0) * 1000)
+                retries += 1
+                if retries <= max_retries:
+                    time.sleep(2 ** retries)
+                    continue
+                break
+        # Redact final_url
+        if entry["final_url"]:
+            entry["final_url"] = TOKEN_RE.sub(r"\1=REDACTED", entry["final_url"]) if "TOKEN_RE" in globals() else entry["final_url"]
         results.append(entry)
     return results
 
@@ -236,10 +318,30 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
     props = feat.get("properties") or {}
     geom = feat.get("geometry")
     coords = None
-    if isinstance(geom, dict) and geom.get("type") == "Point":
-        c = geom.get("coordinates")
-        if isinstance(c, (list, tuple)) and len(c) >= 2:
-            coords = (c[0], c[1])
+    if isinstance(geom, dict):
+        gtype = geom.get("type")
+        if gtype == "Point":
+            c = geom.get("coordinates")
+            if isinstance(c, (list, tuple)) and len(c) >= 2:
+                coords = (c[0], c[1])
+        elif gtype == "MultiPoint":
+            c = geom.get("coordinates")
+            if isinstance(c, (list, tuple)) and len(c) > 0 and isinstance(c[0], (list, tuple)) and len(c[0]) >= 2:
+                coords = (c[0][0], c[0][1])
+        elif gtype in ("LineString", "MultiLineString"):
+            c = geom.get("coordinates")
+            if isinstance(c, (list, tuple)) and len(c) > 0:
+                first = c[0]
+                if isinstance(first, (list, tuple)) and len(first) >= 2:
+                    coords = (first[0], first[1])
+                elif isinstance(first, (list, tuple)) and len(first) > 0 and isinstance(first[0], (list, tuple)):
+                    coords = (first[0][0], first[0][1])
+        elif gtype in ("Polygon", "MultiPolygon"):
+            c = geom.get("coordinates")
+            if isinstance(c, (list, tuple)) and len(c) > 0:
+                ring = c[0]
+                if isinstance(ring, (list, tuple)) and len(ring) > 0 and isinstance(ring[0], (list, tuple)) and len(ring[0]) >= 2:
+                    coords = (ring[0][0], ring[0][1])
     addr = {}
     for k in ["street_address", "street", "city", "state", "postcode", "country", "full", "housenumber", "unit"]:
         v = props.get(f"addr:{k}")
@@ -498,12 +600,14 @@ def main():
             "brand": spider.split("_")[0],
             "category": industry_bucket(spider),
             "country": country_bucket(spider),
+            "country_count": 0,
             "domain": "",
             "source_url": "",
             "store_locator_url": "",
             "api_endpoints": "",
             "rendering_required": "unknown",
             "extraction_method": "unknown",
+            "http_method": "GET",
             "source_mapping_confidence": "low",
             "run_id": run_id,
             "collection_time": retrieval_ts,
@@ -573,6 +677,7 @@ def main():
         analysis = analyze_source(source_text or "")
         res["rendering_required"] = analysis["rendering"]
         res["extraction_method"] = analysis["extraction_method"]
+        res["http_method"] = analysis.get("http_method", "GET")
         res["source_mapping_confidence"] = analysis["source_mapping_confidence"]
         res["platform"] = analysis.get("platform", "none")
         urls = analysis["source_urls"]
@@ -587,7 +692,8 @@ def main():
         probe_urls = urls[:3] if urls else []
         # dedup
         probe_urls = list(dict.fromkeys(probe_urls))
-        http_entries = probe_http(probe_urls, timeout=min(args.timeout, 15))
+        http_method = analysis.get("http_method", "GET")
+        http_entries = probe_http(probe_urls, timeout=min(args.timeout, 15), method=http_method)
         for he in http_entries:
             http_metadata_lines.append({
                 "spider": spider,
@@ -599,10 +705,12 @@ def main():
             first = http_entries[0]
             res["http_status"] = first.get("status")
             res["http_etag"] = first.get("etag")
+            res["http_etag_strength"] = first.get("etag_strength", "none")
             res["http_last_modified"] = first.get("last_modified")
 
         # normalize features
         fields_set = set()
+        brand_from_data = None
         if geojson_data and isinstance(geojson_data, dict):
             feats = geojson_data.get("features") or []
             res["feature_count"] = len(feats)
@@ -612,9 +720,22 @@ def main():
                 props = feat.get("properties") or {}
                 for k in props.keys():
                     fields_set.add(k)
+                if brand_from_data is None:
+                    brand_from_data = props.get("brand")
                 norm, feat_out = normalize_feature(feat, spider, run_id, retrieval_ts, str(geojson_path))
                 normalized_records.append(norm)
                 all_features_out.append(feat_out)
+        if brand_from_data:
+            res["brand"] = brand_from_data
+        # Count unique countries
+        countries = set()
+        for feat in (geojson_data.get("features", []) if geojson_data and isinstance(geojson_data, dict) else []):
+            props = feat.get("properties", {}) or {}
+            c = props.get("addr:country")
+            if c:
+                countries.add(c)
+        if countries:
+            res["country_count"] = len(countries)
         res["fields_present"] = ";".join(sorted(fields_set))
 
         # collection status
@@ -658,11 +779,11 @@ def main():
     # 8. Write manifest.csv
     log("Writing manifest.csv...")
     manifest_cols = [
-        "spider", "brand", "category", "country", "domain", "source_url", "store_locator_url",
-        "api_endpoints", "rendering_required", "extraction_method", "platform",
+        "spider", "brand", "category", "country", "country_count", "domain", "source_url", "store_locator_url",
+        "api_endpoints", "rendering_required", "extraction_method", "platform", "http_method",
         "source_mapping_confidence", "run_id", "collection_time", "feature_count",
         "fields_present", "monitoring_strategy_candidate", "http_status", "http_etag",
-        "http_last_modified", "collection_status", "related_spiders", "source_file",
+        "http_etag_strength", "http_last_modified", "collection_status", "related_spiders", "source_file",
         "source_fetch_status", "geojson_fetch_status",
     ]
     manifest_path = out / "manifest.csv"
