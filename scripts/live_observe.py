@@ -10,15 +10,13 @@ import argparse
 import csv
 import hashlib
 import json
-import os
+import sys
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlparse
 
 import requests
-import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import collect_seed as cs
@@ -28,7 +26,7 @@ TOKEN_RE = cs.TOKEN_RE
 
 
 def now_iso():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def redact_url(url):
@@ -55,7 +53,7 @@ def should_skip(resource, existing_obs, min_interval_hours):
     """Check if resource was observed within min_interval_hours."""
     spider = resource["spider"]
     url = resource["original_url"]
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=min_interval_hours)
+    cutoff = datetime.now(UTC) - timedelta(hours=min_interval_hours)
     for obs in existing_obs:
         if obs.get("spider") == spider and obs.get("resource_url") == redact_url(url):
             ts = obs.get("timestamp", "")

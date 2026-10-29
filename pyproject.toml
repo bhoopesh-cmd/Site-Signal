@@ -1,0 +1,28 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "BLE001",  # blind exception — intentional in network code
+    "SIM115",  # context manager — many open() calls in CSV writing
+    "EXE001",  # shebang not executable — scripts run via python3
+    "S110",    # try-except-pass — intentional for sitemap resolution
+    "SIM105",  # try-except-pass — intentional for sitemap resolution
+    "S112",    # try-except-continue — intentional
+    "RUF059",  # unused unpacked variable — often intentional
+    "E501",    # line too long — handled by line-length
+    "SIM102",  # nested if — readability preference
+    "SIM118",  # dict keys membership — style
+    "SIM113",  # enumerate — style
+    "PLC0206", # typevar — not relevant
+    "PIE810",  # call-once — style
+    "PIE790",  # unnecessary pass — style
+    "FURB162", # fromisoformat — style
+    "C401",    # generator in set() — style
+    "F841",    # unused variable — often intentional in exploration
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["collect_seed", "evaluate_signals", "monitor", "live_observe", "signal_compare", "synthetic_fixtures"]

@@ -1,7 +1,4 @@
-import json
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -47,7 +44,7 @@ def test_find_zip_entry_not_found():
 
 def test_conditional_probe_returns_dict():
     # Use a resource that should return 200 or 304
-    inventory = [{
+    _ = [{
         "spider": "test_spider",
         "brand": "test",
         "original_url": "https://httpbin.org/get",
@@ -57,8 +54,6 @@ def test_conditional_probe_returns_dict():
         "access_restrictions": "",
         "resource_type": "JSON",
     }]
-    # This will make real requests; just check structure
-    results = ev.task3_conditional_probes.__wrapped__(Path(tempfile.mkdtemp()), inventory) if hasattr(ev.task3_conditional_probes, "__wrapped__") else None
     # Skip actual network call in unit test; just verify function exists
     assert callable(ev.task3_conditional_probes)
 

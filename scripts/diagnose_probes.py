@@ -3,7 +3,6 @@
 import argparse
 import csv
 import json
-import os
 import re
 import time
 from pathlib import Path
@@ -33,11 +32,11 @@ def extract_request_urls(source_text):
     """Extract actual request URLs from spider source using multiple patterns."""
     urls = []
     # start_urls
-    for m in re.finditer(r'start_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.S):
+    for m in re.finditer(r'start_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.DOTALL):
         for um in re.finditer(r'["\']([^"\']+)["\']', m.group(1)):
             urls.append(("start_urls", um.group(1)))
     # sitemap_urls
-    for m in re.finditer(r'sitemap_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.S):
+    for m in re.finditer(r'sitemap_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.DOTALL):
         for um in re.finditer(r'["\']([^"\']+)["\']', m.group(1)):
             urls.append(("sitemap_urls", um.group(1)))
     # Request/JsonRequest/FormRequest with URL
@@ -49,7 +48,7 @@ def extract_request_urls(source_text):
     for m in re.finditer(r'urljoin\([^,]+,\s*["\']([^"\']+)["\']', source_text):
         urls.append(("urljoin", m.group(1)))
     # yield Request with variable
-    for m in re.finditer(r'yield\s+(?:self\.)?page_request\([^)]*\)', source_text):
+    for _m in re.finditer(r'yield\s+(?:self\.)?page_request\([^)]*\)', source_text):
         pass
     # f-string URLs assigned to variables
     for m in re.finditer(r'(\w+)\s*=\s*f["\'](https?://[^"\']+)["\']', source_text):
@@ -117,15 +116,12 @@ def main():
     out = Path(args.output)
 
     # Load failures
-    lines = [json.loads(l) for l in open(out / "http_metadata.jsonl")]
-    fails = [l for l in lines if not (isinstance(l.get("status"), int) and 200 <= l["status"] < 400)]
+    lines = [json.loads(line) for line in open(out / "http_metadata.jsonl")]
+    fails = [entry for entry in lines if not (isinstance(entry.get("status"), int) and 200 <= entry["status"] < 400)]
     print(f"Total failures: {len(fails)}")
 
     # Load manifest
     manifest = {r["spider"]: r for r in csv.DictReader(open(out / "manifest.csv"))}
-
-    # Preserve original failures
-    original_failures = [dict(f) for f in fails]
 
     # Process each failure
     diagnostics = []
@@ -156,12 +152,12 @@ def main():
                     break
             if not best_url:
                 # Use first non-template URL
-                for kind, u in source_urls:
+                for _kind, u in source_urls:
                     if "{" not in u and "[" not in u and not u.startswith("?") and u.startswith("http"):
                         best_url = u
                         break
             if not best_url and source_urls:
-                for kind, u in source_urls:
+                for _kind, u in source_urls:
                     if u.startswith("http"):
                         best_url = u
                         break
@@ -171,7 +167,6 @@ def main():
         retry_url = url
         retry_error = None
         retry_headers = {}
-        retry_history = []
         retry_classification = classification
 
         # Only retry if we have a plausible better URL or the original might work with headers
@@ -182,7 +177,6 @@ def main():
                 retry_status = sc
                 retry_url = final
                 retry_headers = hdrs
-                retry_history = hist
                 if 200 <= sc < 400:
                     retry_classification = "resolved"
             else:
@@ -203,7 +197,6 @@ def main():
                 retry_status = sc
                 retry_url = final
                 retry_headers = hdrs
-                retry_history = hist
                 if 200 <= sc < 400 and sc != status:
                     retry_classification = "resolved"
             else:

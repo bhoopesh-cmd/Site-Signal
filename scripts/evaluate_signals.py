@@ -7,7 +7,6 @@ Usage:
 """
 import argparse
 import csv
-import io
 import json
 import os
 import re
@@ -15,7 +14,7 @@ import struct
 import sys
 import time
 import zlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -28,7 +27,7 @@ USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"
 HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
 
 # --- Redaction helpers ---
-TOKEN_RE = re.compile(r"(token|key|secret|password|auth|session|sid|api_key|apikey)=[^&]+", re.I)
+TOKEN_RE = re.compile(r"(token|key|secret|password|auth|session|sid|api_key|apikey)=[^&]+", re.IGNORECASE)
 
 
 def redact_url(url):
@@ -36,7 +35,7 @@ def redact_url(url):
 
 
 def now_iso():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def fetch_json(url, timeout=30):
@@ -275,7 +274,6 @@ def task2_historical(out, manifest, prev_run_id=None):
     print(f"  Previous run: {prev_run_id}")
     print(f"  Output URL: {output_url}")
 
-    manifest_map = {r["spider"]: r for r in manifest}
     spiders = [r["spider"] for r in manifest]
 
     # Load current features by spider
@@ -495,7 +493,7 @@ def task3_conditional_probes(out, inventory):
                 etag_status = resp.status_code
                 etag_bytes = len(resp.content) if resp.content else 0
                 etag_body = bool(resp.content)
-            except Exception as e:
+            except Exception:
                 etag_status = None
                 etag_elapsed = int((time.time() - t0) * 1000)
 
@@ -509,7 +507,7 @@ def task3_conditional_probes(out, inventory):
                 lm_status = resp.status_code
                 lm_bytes = len(resp.content) if resp.content else 0
                 lm_body = bool(resp.content)
-            except Exception as e:
+            except Exception:
                 lm_status = None
                 lm_elapsed = int((time.time() - t0) * 1000)
 
@@ -617,7 +615,7 @@ def task4_provider_groups(out, manifest, inventory):
 
     # Build output
     rows = []
-    for key, g in groups.items():
+    for _key, g in groups.items():
         is_shared_data = len(g["spiders"]) > 1 and len(g["domains"]) == 1
         is_shared_platform = len(g["spiders"]) > 1 and len(g["domains"]) > 1
 
@@ -728,7 +726,7 @@ def main():
     # Load existing data
     print("Loading existing data...")
     manifest = list(csv.DictReader(open(out / "manifest.csv")))
-    http_entries = [json.loads(l) for l in open(out / "http_metadata.jsonl")]
+    http_entries = [json.loads(line) for line in open(out / "http_metadata.jsonl")]
     print(f"  Manifest: {len(manifest)} spiders")
     print(f"  HTTP entries: {len(http_entries)}")
 
@@ -785,14 +783,7 @@ def main():
     print("\nDone. Update PROGRESS.md manually with results.")
 
 
-def write_changes_header(out):
-    changes_path = out / "changes.csv"
-    changes_cols = ["spider", "change_type", "prev_run", "curr_run", "prev_record_id",
-                    "curr_record_id", "changed_fields", "prev_value", "curr_value",
-                    "matching_confidence", "match_method", "classification", "evidence"]
-    with open(changes_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=changes_cols)
-        w.writeheader()
+    pass
 
 
 if __name__ == "__main__":

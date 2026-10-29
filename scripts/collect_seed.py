@@ -7,7 +7,6 @@ Usage:
 """
 import argparse
 import csv
-import hashlib
 import json
 import os
 import re
@@ -15,13 +14,13 @@ import sys
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
 
-TOKEN_RE = re.compile(r"(token|key|secret|password|auth|session|sid|api_key|apikey)=[^&]+", re.I)
+TOKEN_RE = re.compile(r"(token|key|secret|password|auth|session|sid|api_key|apikey)=[^&]+", re.IGNORECASE)
 
 
 def redact_url(url):
@@ -31,10 +30,11 @@ def redact_url(url):
 
 
 LATEST_URL = "https://data.alltheplaces.xyz/runs/latest.json"
+HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
 GITHUB_RAW = "https://raw.githubusercontent.com/alltheplaces/alltheplaces/master/{}"
 USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"
 
-COUNTRY_RE = re.compile(r"_([a-z]{2})(?:_|$)", re.I)
+COUNTRY_RE = re.compile(r"_([a-z]{2})(?:_|$)", re.IGNORECASE)
 INDUSTRY_KEYWORDS = [
     ("bank", "banking"), ("pizza", "food"), ("coffee", "food"), ("burger", "food"),
     ("restaurant", "food"), ("cafe", "food"), ("food", "food"), ("grocery", "retail"),
@@ -55,7 +55,7 @@ def log(msg):
 
 
 def now_iso():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def fetch_json(url, timeout=30):
@@ -125,7 +125,7 @@ def resolve_sitemap_pointer(url, timeout=10):
                 if "<sitemap>" in r.text.lower() or "<sitemap " in r.text.lower():
                     # Extract first child sitemap
                     import re as _re
-                    m = _re.search(r"<loc>\s*(https?://[^<]+)\s*</loc>", r.text, _re.I)
+                    m = _re.search(r"<loc>\s*(https?://[^<]+)\s*</loc>", r.text, _re.IGNORECASE)
                     if m:
                         return m.group(1).strip()
                 # If it's a regular sitemap with <url> entries, it's already the right resource
@@ -163,7 +163,7 @@ def analyze_source(source_text):
         return info
     # start_urls extraction
     urls = set()
-    for m in re.finditer(r'start_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.S):
+    for m in re.finditer(r'start_urls\s*[:=].*?\[([^\]]*)\]', source_text, re.DOTALL):
         for um in re.finditer(r'["\']([^"\']+)["\']', m.group(1)):
             urls.add(um.group(1))
     # capture all quoted http(s) urls, excluding docs/github/non-source
@@ -454,7 +454,7 @@ def main():
         if end_time:
             try:
                 et = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                age_days = (datetime.now(timezone.utc) - et).days
+                age_days = (datetime.now(UTC) - et).days
                 if age_days > args.freshness_threshold_days:
                     freshness_status = f"stale: latest run is {age_days} days old"
                     log(f"WARNING: latest run is {age_days} days old (threshold {args.freshness_threshold_days})")
@@ -803,8 +803,7 @@ def main():
     log("Writing http_metadata.jsonl...")
     http_path = out / "http_metadata.jsonl"
     with open(http_path, "w") as f:
-        for line in http_metadata_lines:
-            f.write(json.dumps(line) + "\n")
+        f.writelines(json.dumps(line) + "\n" for line in http_metadata_lines)
 
     # 11. changes.csv (header; historical optional)
     changes_path = out / "changes.csv"
@@ -978,9 +977,9 @@ def main():
         f.write(f"- Resources with Last-Modified: {lm_count}\n")
         f.write(f"- Historical comparison: {'attempted' if args.historical else 'deferred (use --historical)'}\n\n")
         f.write("## Sampling methodology\n")
-        f.write("Automated stratified sampling over qualifying spiders (errors==0, features>={}, not infrastructure/addresses). ".format(args.min_features))
+        f.write(f"Automated stratified sampling over qualifying spiders (errors==0, features>={args.min_features}, not infrastructure/addresses). ")
         f.write("Strata: country bucket (from spider name), size bucket (small<50, medium 50-500, large>500), industry bucket (keyword from spider name). ")
-        f.write("Deterministic round-robin selection with seed={}.\n\n".format(args.seed))
+        f.write(f"Deterministic round-robin selection with seed={args.seed}.\n\n")
         f.write("## Limitations\n")
         f.write("- AllThePlaces is reference data, not guaranteed ground truth.\n")
         f.write("- Source mapping is heuristic (regex over spider source code); confidence reflects evidence.\n")
@@ -1001,10 +1000,10 @@ def main():
 def extract_request_urls(source_text):
     """Extract actual request URLs from spider source using multiple patterns."""
     urls = []
-    for m in re.finditer(r"start_urls\s*[:=].*?\[([^\]]*)\]", source_text, re.S):
+    for m in re.finditer(r"start_urls\s*[:=].*?\[([^\]]*)\]", source_text, re.DOTALL):
         for um in re.finditer(r'["\']([^"\']+)["\']', m.group(1)):
             urls.append(("start_urls", um.group(1)))
-    for m in re.finditer(r"sitemap_urls\s*[:=].*?\[([^\]]*)\]", source_text, re.S):
+    for m in re.finditer(r"sitemap_urls\s*[:=].*?\[([^\]]*)\]", source_text, re.DOTALL):
         for um in re.finditer(r'["\']([^"\']+)["\']', m.group(1)):
             urls.append(("sitemap_urls", um.group(1)))
     for m in re.finditer(r"(?:JsonRequest|FormRequest|Request)\(\s*[\"']([^\"']+)[\"']", source_text):

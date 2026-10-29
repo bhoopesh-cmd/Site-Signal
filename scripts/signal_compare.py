@@ -7,9 +7,7 @@ Usage:
 """
 import argparse
 import csv
-import hashlib
 import json
-from datetime import datetime
 from pathlib import Path
 
 USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"

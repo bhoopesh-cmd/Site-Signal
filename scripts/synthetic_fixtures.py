@@ -6,15 +6,11 @@ Usage:
     python3 scripts/synthetic_fixtures.py --output data/seed/synthetic
 """
 import argparse
-import csv
-import hashlib
 import json
-import os
+import sys
 from pathlib import Path
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import collect_seed as cs
 
 
 def make_feature(fid, name, addr, city, coords, phone=None):
@@ -44,7 +40,7 @@ def make_collection(features):
 # --- Scenario 1: Store added ---
 def scenario_store_added():
     prev = [make_feature("a", "Store A", "1 Main St", "City1", [1.0, 2.0])]
-    curr = prev + [make_feature("b", "Store B", "2 Main St", "City1", [3.0, 4.0])]
+    curr = [*prev, make_feature("b", "Store B", "2 Main St", "City1", [3.0, 4.0])]
     return prev, curr, "added"
 
 

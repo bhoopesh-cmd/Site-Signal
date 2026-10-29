@@ -1,5 +1,3 @@
-import hashlib
-import json
 import sys
 from pathlib import Path
 
@@ -263,7 +261,8 @@ def test_live_observe_probe_resource_structure():
 
 
 def test_synthetic_fixtures_generate():
-    import tempfile, os
+    import os
+    import tempfile
     d = tempfile.mkdtemp()
     sf.generate_all(d)
     assert os.path.exists(os.path.join(d, "store_added_prev.geojson"))

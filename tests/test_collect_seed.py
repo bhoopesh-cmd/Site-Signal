@@ -1,7 +1,4 @@
-import json
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -241,7 +238,6 @@ def test_try_request_returns_five_tuple():
 
 
 def test_probe_diagnostics_file_exists():
-    assert (Path("data/seed/probe_diagnostics.csv")).exists() if False else True
     from pathlib import Path
     assert Path("data/seed/probe_diagnostics.csv").exists()
 
