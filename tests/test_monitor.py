@@ -94,7 +94,7 @@ def test_classify_strategy_C():
 
 def test_route_strategy_A_304():
     resource = {"primary_strategy": "A", "confidence": "candidate"}
-    result = {"status": 304, "failed": False, "error": None, "validator_changed": False,
+    result = {"status": 304, "cond_status": 304, "failed": False, "error": None, "validator_changed": False,
               "body_changed": "unknown", "data_changed": "unknown"}
     decision = mon.route(resource, result)
     assert decision["decision"] == "skip"

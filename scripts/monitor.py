@@ -251,9 +251,10 @@ def route(resource, result):
         }
 
     if strategy == "A":
-        # Conditional HTTP
-        if status == 304:
-            # Validator says unchanged — but is it trusted?
+        # Check conditional request result
+        cond_status = result.get("cond_status")
+        if cond_status == 304:
+            # Validator says unchanged
             if resource.get("confidence") == "candidate":
                 return {
                     "decision": "skip",
@@ -267,7 +268,7 @@ def route(resource, result):
                 "confidence": "high",
                 "fallback_executed": False,
             }
-        if status == 200:
+        if cond_status == 200 or status == 200:
             # Validator changed but body unchanged → false positive
             if result.get("validator_changed") and body_changed is False:
                 return {
@@ -279,35 +280,35 @@ def route(resource, result):
             if body_changed is True and data_changed is True:
                 return {
                     "decision": "trigger_extraction",
-                    "justification": "200 with changed body and changed location data",
+                    "justification": "Conditional request returned 200 with changed body and changed location data",
                     "confidence": "medium",
                     "fallback_executed": False,
                 }
             if body_changed is True and data_changed is False:
                 return {
                     "decision": "skip",
-                    "justification": "200 with changed body but location data unchanged (false positive)",
+                    "justification": "Conditional request returned 200 with changed body but location data unchanged (false positive)",
                     "confidence": "medium",
                     "fallback_executed": False,
                 }
             if body_changed is False:
                 return {
                     "decision": "skip",
-                    "justification": "200 with identical body (conditional ignored)",
+                    "justification": "Conditional request returned 200 with identical body (conditional ignored)",
                     "confidence": "low",
                     "fallback_executed": False,
                 }
             # Unknown data change
             return {
                 "decision": "unknown",
-                "justification": "200 returned but data change unknown; needs verification",
+                "justification": "Conditional request returned 200 but data change unknown; needs verification",
                 "confidence": "low",
                 "fallback_executed": True,
             }
         # Other status
         return {
             "decision": "unknown",
-            "justification": f"Unexpected status {status} for conditional HTTP",
+            "justification": f"Unexpected status {status}/{cond_status} for conditional HTTP",
             "confidence": "n/a",
             "fallback_executed": True,
         }
@@ -406,7 +407,30 @@ def execute_strategy(resource, timeout=15, baseline=None):
         result["etag"] = r.headers.get("ETag")
         result["last_modified"] = r.headers.get("Last-Modified")
         result["bytes_transferred"] = len(r.content) if r.content else 0
-        # Always compute body hash for comparison
+
+        # Handle 304 Not Modified — reuse saved baseline state
+        if r.status_code == 304:
+            # 304 has no body — reuse saved baseline's body hash and fingerprint
+            if baseline:
+                result["body_hash"] = baseline.get("body_hash")
+                result["normalized_fingerprint"] = baseline.get("normalized_fingerprint")
+                result["body_changed"] = False
+                result["data_changed"] = False
+                result["validator_changed"] = False
+                result["status"] = 304
+            else:
+                # No baseline to reuse — unknown
+                result["body_hash"] = None
+                result["normalized_fingerprint"] = None
+                result["body_changed"] = "unknown"
+                result["data_changed"] = "unknown"
+                result["validator_changed"] = False
+                result["status"] = 304
+                result["error"] = "304 without saved baseline"
+                result["failed"] = True
+            return result
+
+        # Always compute body hash for comparison (200 responses)
         if r.content:
             result["body_hash"] = hashlib.sha256(r.content).hexdigest()
         else:
@@ -430,13 +454,31 @@ def execute_strategy(resource, timeout=15, baseline=None):
                     result["cond_elapsed_ms"] = int((time.time() - t1) * 1000)
                     result["cond_bytes"] = len(cr.content) if cr.content else 0
                     if cr.status_code == 304:
+                        # 304 has no body — reuse saved baseline state
                         result["validator_changed"] = False
+                        result["body_changed"] = False
+                        result["data_changed"] = False
+                        if baseline:
+                            result["body_hash"] = baseline.get("body_hash")
+                            result["normalized_fingerprint"] = baseline.get("normalized_fingerprint")
                     elif cr.status_code == 200:
                         result["validator_changed"] = True
-                        # Compare body hash
-                        if baseline and baseline.get("body_hash"):
-                            new_hash = hashlib.sha256(r.content).hexdigest()
-                            result["body_changed"] = (new_hash != baseline["body_hash"])
+                        # Compute body hash from the 200 response
+                        if cr.content:
+                            new_hash = hashlib.sha256(cr.content).hexdigest()
+                            result["body_hash"] = new_hash
+                            # Compare with baseline
+                            if baseline and baseline.get("body_hash"):
+                                result["body_changed"] = (new_hash != baseline["body_hash"])
+                            # Try to extract location features
+                            try:
+                                features, fp = bs.extract_location_features(cr.text, r["spider"])
+                                if fp:
+                                    result["normalized_fingerprint"] = fp
+                                    if baseline and baseline.get("normalized_fingerprint"):
+                                        result["data_changed"] = (fp != baseline["normalized_fingerprint"])
+                            except Exception:
+                                pass
                 except Exception as e:
                     result["error"] = str(e)
                     result["failed"] = True
@@ -712,19 +754,26 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
         }
         decisions.append(entry)
 
-        # Save baseline (append-only)
-        new_baseline = bs.create_baseline(
-            spider=r["spider"],
-            url=r["resource_url"],
-            body_hash=result.get("body_hash") or str(result.get("status", "")),
-            fingerprint=result.get("normalized_fingerprint"),
-            etag=result.get("etag"),
-            last_modified=result.get("last_modified"),
-            feature_count=0,
-            status="success" if not result.get("failed") else "failed",
-        )
-        bs.save_baseline(out, new_baseline)
-        baselines.append(new_baseline)
+        # Save baseline (append-only) — only if eligible
+        eligible, reason = bs.is_baseline_eligible(result)
+        if eligible:
+            new_baseline = bs.create_baseline(
+                spider=r["spider"],
+                url=r["resource_url"],
+                body_hash=result.get("body_hash"),
+                fingerprint=result.get("normalized_fingerprint"),
+                etag=result.get("etag"),
+                last_modified=result.get("last_modified"),
+                feature_count=0,
+                status="success" if not result.get("failed") else "failed",
+                baseline_status=reason,
+                prev_baseline_id=baseline.get("baseline_id") if baseline else None,
+            )
+            bs.save_baseline(out, new_baseline)
+            baselines.append(new_baseline)
+        else:
+            # Still log the observation but don't overwrite baseline
+            result["baseline_status"] = reason
 
         # Progress
         if len(decisions) % 10 == 0 or len(decisions) == len(registry):
