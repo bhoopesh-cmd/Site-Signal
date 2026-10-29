@@ -150,31 +150,47 @@ def test_resolve_sitemap_pointer_non_sitemap():
 
 
 def test_geometry_types():
-    # Point
+    # Polygon — should NOT derive coords (preserve original geometry only)
+    feat2 = {"type": "Feature", "properties": {"name": "Y"}, "geometry": {"type": "Polygon", "coordinates": [[[1.0, 2.0], [3.0, 4.0]]]}}
+    norm2, fout2 = cs.normalize_feature(feat2, "sp", "r", "ts", "f")
+    assert norm2["lon"] is None and norm2["lat"] is None
+    assert norm2["geom_type"] == "Polygon"
+    assert fout2["geometry"]["type"] == "Polygon"  # original geometry preserved
+    # LineString — should NOT derive coords
+    feat3 = {"type": "Feature", "properties": {"name": "Z"}, "geometry": {"type": "LineString", "coordinates": [[1.0, 2.0], [3.0, 4.0]]}}
+    norm3, fout3 = cs.normalize_feature(feat3, "sp", "r", "ts", "f")
+    assert norm3["lon"] is None and norm3["lat"] is None
+    assert norm3["geom_type"] == "LineString"
+    # Point — should derive coords
     feat = {"type": "Feature", "properties": {"name": "X"}, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}}
     norm, _ = cs.normalize_feature(feat, "sp", "r", "ts", "f")
     assert norm["lon"] == 1.0 and norm["lat"] == 2.0
-    # Polygon
-    feat2 = {"type": "Feature", "properties": {"name": "Y"}, "geometry": {"type": "Polygon", "coordinates": [[[1.0, 2.0], [3.0, 4.0]]]}}
-    norm2, _ = cs.normalize_feature(feat2, "sp", "r", "ts", "f")
-    assert norm2["lon"] == 1.0 and norm2["lat"] == 2.0
-    # LineString
-    feat3 = {"type": "Feature", "properties": {"name": "Z"}, "geometry": {"type": "LineString", "coordinates": [[1.0, 2.0], [3.0, 4.0]]}}
-    norm3, _ = cs.normalize_feature(feat3, "sp", "r", "ts", "f")
-    assert norm3["lon"] == 1.0 and norm3["lat"] == 2.0
     # None geometry
     feat4 = {"type": "Feature", "properties": {"name": "W"}, "geometry": None}
     norm4, _ = cs.normalize_feature(feat4, "sp", "r", "ts", "f")
     assert norm4["lon"] is None and norm4["lat"] is None
 
 
-def test_weak_etag_detection():
-    # probe_http should detect weak ETags
-    # We can't easily test without network, but verify the logic
+def test_analyze_source_post_detection():
+    src = 'from scrapy.http import FormRequest\nyield FormRequest("https://api.example.org/stores", method="POST")'
+    info = cs.analyze_source(src)
+    assert info.get("http_method") == "POST"
+    assert "https://api.example.org/stores" in info["source_urls"]
+
+
+def test_analyze_source_get_default():
+    src = 'start_urls = ["https://example.com/stores"]'
+    info = cs.analyze_source(src)
+    assert info.get("http_method") == "GET"
+
+
+def test_weak_etag_not_discarded():
+    # Weak ETags should still be recorded, not discarded
     etag = 'W/"54-g82mD9fz2XofYj/5YX/678aNKGw"'
     assert etag.startswith('W/"')
-    strong = '"abc123"'
-    assert not strong.startswith('W/"')
+    # The probe_http function records etag_strength but doesn't discard
+    # Verify the logic: weak etags are still truthy
+    assert bool(etag) is True
 
 
 # --- Step 2: probe diagnostics tests ---

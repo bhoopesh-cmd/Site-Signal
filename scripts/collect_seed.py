@@ -320,6 +320,10 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
     coords = None
     if isinstance(geom, dict):
         gtype = geom.get("type")
+        # Only derive lat/lon from Point geometry. For non-Point geometries
+        # (Polygon, LineString, etc.), preserve the original geometry as-is
+        # and do not fabricate a representative point — a polygon vertex is
+        # not necessarily a store location.
         if gtype == "Point":
             c = geom.get("coordinates")
             if isinstance(c, (list, tuple)) and len(c) >= 2:
@@ -328,20 +332,6 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
             c = geom.get("coordinates")
             if isinstance(c, (list, tuple)) and len(c) > 0 and isinstance(c[0], (list, tuple)) and len(c[0]) >= 2:
                 coords = (c[0][0], c[0][1])
-        elif gtype in ("LineString", "MultiLineString"):
-            c = geom.get("coordinates")
-            if isinstance(c, (list, tuple)) and len(c) > 0:
-                first = c[0]
-                if isinstance(first, (list, tuple)) and len(first) >= 2:
-                    coords = (first[0], first[1])
-                elif isinstance(first, (list, tuple)) and len(first) > 0 and isinstance(first[0], (list, tuple)):
-                    coords = (first[0][0], first[0][1])
-        elif gtype in ("Polygon", "MultiPolygon"):
-            c = geom.get("coordinates")
-            if isinstance(c, (list, tuple)) and len(c) > 0:
-                ring = c[0]
-                if isinstance(ring, (list, tuple)) and len(ring) > 0 and isinstance(ring[0], (list, tuple)) and len(ring[0]) >= 2:
-                    coords = (ring[0][0], ring[0][1])
     addr = {}
     for k in ["street_address", "street", "city", "state", "postcode", "country", "full", "housenumber", "unit"]:
         v = props.get(f"addr:{k}")
@@ -367,6 +357,7 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
     feat_id = feat.get("id")
     lat = coords[1] if coords else None
     lon = coords[0] if coords else None
+    geom_type = geom.get("type") if isinstance(geom, dict) else None
     norm = {
         "id": feat_id,
         "spider": spider,
@@ -386,6 +377,7 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
         "addr_postcode": postcode,
         "addr_country": country,
         "addr_full": full_addr,
+        "geom_type": geom_type,
         "lon": lon,
         "lat": lat,
         "run_id": run_id,
