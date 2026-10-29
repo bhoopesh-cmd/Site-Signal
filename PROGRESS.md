@@ -205,6 +205,15 @@ Provider webhook → Conditional HTTP → Sitemap/feed check → Direct API fetc
 
 ---
 
+## Sitemap Pointer Resolution (robots.txt handling)
+
+- Added `resolve_sitemap_pointer()` to `collect_seed.py` — fetches robots.txt and extracts the `Sitemap:` directive to get the actual sitemap XML URL
+- Updated `analyze_source()` to resolve sitemap pointers before recording source URLs
+- Updated `evaluate_signals.py` Task 1 to skip robots.txt resources and replace with resolved sitemap URL
+- robots.txt is never a location-data resource; it's always a sitemap pointer. Monitoring should target the sitemap XML instead.
+- Added `sitemap_crawl` as an extraction method classification for SitemapSpider sites
+- Tests: 45 passing
+
 ## Key decisions and constraints
 - AllThePlaces is reference data, not ground truth
 - HTTP validators (ETag/Last-Modified) are candidates, not proven reliable

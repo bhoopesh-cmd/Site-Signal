@@ -104,6 +104,24 @@ def fetch_spider_source(filename, timeout=30):
         return None, url, f"error: {e}"
 
 
+def resolve_sitemap_pointer(url, timeout=10):
+    """If url is a robots.txt sitemap pointer, fetch it and return the actual sitemap URL."""
+    if not url or not url.lower().endswith("robots.txt"):
+        return url
+    try:
+        r = requests.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
+        if r.status_code == 200:
+            for line in r.text.splitlines():
+                line = line.strip()
+                if line.lower().startswith("sitemap:"):
+                    sitemap_url = line.split(":", 1)[1].strip() if ":" in line else ""
+                    if sitemap_url.startswith("http"):
+                        return sitemap_url
+    except Exception:
+        pass
+    return url  # fallback to original
+
+
 def analyze_source(source_text):
     info = {
         "source_urls": [],
@@ -126,6 +144,12 @@ def analyze_source(source_text):
         if any(d in u.lower() for d in EXCLUDE_DOMAINS):
             continue
         urls.add(u)
+    # Resolve sitemap pointers (robots.txt -> actual sitemap URL)
+    resolved_urls = set()
+    for u in urls:
+        resolved = resolve_sitemap_pointer(u)
+        resolved_urls.add(resolved)
+    urls = resolved_urls
     info["source_urls"] = sorted(urls)[:5]
     # rendering detection
     low = source_text.lower()
@@ -140,6 +164,8 @@ def analyze_source(source_text):
         info["extraction_method"] = "json_api"
     elif "graphql" in low:
         info["extraction_method"] = "graphql"
+    elif "SitemapSpider" in source_text:
+        info["extraction_method"] = "sitemap_crawl"
     else:
         info["extraction_method"] = "html_scrape"
     # platform

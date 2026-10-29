@@ -148,6 +148,31 @@ def task1_resource_inventory(out, manifest, http_entries):
         m = manifest_map.get(spider, {})
         diag = diag_map.get(spider, {})
 
+        # Skip robots.txt sitemap pointers — not location-data resources
+        if url and url.lower().endswith("robots.txt"):
+            # Try to resolve to actual sitemap
+            try:
+                r = requests.get(url, timeout=10, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
+                sitemap_url = None
+                if r.status_code == 200:
+                    for line in r.text.splitlines():
+                        line = line.strip()
+                        if line.lower().startswith("sitemap:"):
+                            sitemap_url = line.split(":", 1)[1].strip() if ":" in line else ""
+                            if sitemap_url.startswith("http"):
+                                break
+                if sitemap_url:
+                    # Replace with sitemap URL for monitoring
+                    url = sitemap_url
+                    entry = dict(entry)
+                    entry["url"] = sitemap_url
+                    entry["final_url"] = sitemap_url
+                else:
+                    # No sitemap found, skip this resource
+                    continue
+            except Exception:
+                continue
+
         # Determine if location data is present
         contains = entry.get("contains_location_data_directly", "unknown")
         # Verify: check if ct indicates JSON/HTML with location data
