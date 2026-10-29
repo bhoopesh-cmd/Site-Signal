@@ -139,17 +139,11 @@ def load_baselines(out):
 
 
 def get_latest_baseline(baselines, spider, url):
-    """Get the most recent eligible baseline for a resource."""
+    """Get the most recent baseline for a resource (any status)."""
     norm = normalize_url(url)
     matching = [b for b in baselines
                 if b.get("spider") == spider
-                and normalize_url(b.get("resource_url", "")) == norm
-                and b.get("baseline_status", "eligible") == "eligible"]
-    if not matching:
-        # Fall back to any baseline (including ineligible) for reference
-        matching = [b for b in baselines
-                    if b.get("spider") == spider
-                    and normalize_url(b.get("resource_url", "")) == norm]
+                and normalize_url(b.get("resource_url", "")) == norm]
     if not matching:
         return None
     matching.sort(key=lambda b: b.get("timestamp", ""), reverse=True)

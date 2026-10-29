@@ -151,6 +151,9 @@ def run_end_to_end(out, dry_run=True, timeout=15, concurrency=4, max_resources=0
                 baselines_map[(spider, url)] = new_baseline
                 print(f"  Baseline updated: {spider}")
 
+    # Write monitoring report
+    mon.write_monitoring_report(out, decisions, metrics)
+
     # Phase 3: Summary
     print("\n=== End-to-End Summary ===")
     print(f"  Run ID: {run_id}")
