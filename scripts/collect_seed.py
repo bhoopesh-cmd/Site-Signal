@@ -266,6 +266,8 @@ def normalize_feature(feat, spider, run_id, retrieval_ts, raw_path):
     }
     # attach provenance to feature
     feat_out = json.loads(json.dumps(feat))  # deep copy
+    if feat_out.get("properties") is None:
+        feat_out["properties"] = {}
     feat_out.setdefault("properties", {})
     feat_out["properties"]["provenance"] = {
         "spider": spider,

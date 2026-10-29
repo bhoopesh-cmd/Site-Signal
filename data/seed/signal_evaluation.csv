@@ -1,0 +1,118 @@
+spider,brand,resource_url,resource_type,contains_location_data,etag_present,last_modified_present,conditional_request_works,etag_test_status,lm_test_status,validator_reliability,access_restrictions,monitoring_viability
+aed_locations_nz,aed,"https://mapmysites.com/api/aed/locations/viewport.geojson?bounds=-90,-180,90,180",JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+aland_post_ax,aland,https://www.alandpost.ax/en/post-offices-and-agents,HTML,verified,True,False,yes,304,error,unverified (single observation),,promising
+aland_post_ax,aland,https://www.alandpost.ax/en/post-offices-and-agents/map,HTML,verified,True,False,yes,304,error,unverified (single observation),,promising
+an_post_ie,an,https://apim-anpost-apwebapis.anpost.com/apweb-intservicesapi/v1/StoreLocator/Search,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 401; Authentication or access restriction,unverified
+an_post_ie,an,https://www.anpost.com/Store-Locator,HTML,verified,False,False,unknown,error,error,unverified (single observation),Authentication or access restriction,possible
+an_post_ie,an,https://www.anpost.com/Store-Locator/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Authentication or access restriction,possible
+azpetrol_az,azpetrol,https://azpetrol.az/service-network,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+banca_popolare_di_sondrio_it,banca,https://api.onthemap.io/server/v1/api/location?dataset=atm&key=REDACTED&channel=www.popso.it,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+banca_popolare_di_sondrio_it,banca,https://api.onthemap.io/server/v1/api/location?dataset=filiali&key=REDACTED&channel=www.popso.it,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+banco_da_amazonia_br,banco,https://www.bancoamazonia.com.br/o-banco/nossas-agencias,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+banque_misr_eg,banque,https://www.banquemisr.com/Home/ABOUT%20US/Locations?sc_lang=en,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+banque_misr_eg,banque,https://www.banquemisr.com/api/sitecore/LocationsApi/GetPlaces?GovernateId=%7Bcity%5B,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+belpost_by,belpost,https://api.belpost.by/api/v1/ops-boxes?%7Bself.EXTENT%7D,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+belpost_by,belpost,https://api.belpost.by/api/v1/ops?%7Bself.EXTENT%7D,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+blinds_to_go,blinds,https://www.blindstogo.com/en/stores,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 502; Server-side failure,unverified
+blinds_to_go,blinds,https://www.blindstogo.com/sitemap.xml,XML,unknown,True,True,no (returned 200),200,200,unverified (single observation),Server-side failure,unverified
+blinds_to_go,blinds,https://www.blindstogo.com/stores/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Server-side failure,possible
+bpb_xk,bpb,https://bpbbank.com/wp-content/plugins/rrota-elementor/assets/js/branches.js,unknown,unknown,True,True,yes,200,304,unverified (single observation),,unverified
+bq,bq,https://api.kingfisher.com/v1/mobile/stores/BQUK?nearLatLong=51.515617%2C-0.091998&page%5Bsize%5D=500,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 401; Server-side failure,unverified
+bq,bq,https://www.diy.com/find-a-store,HTML,verified,False,False,unknown,error,error,unverified (single observation),Server-side failure,possible
+bq,bq,https://www.diy.com/store/,HTML,unverified,False,True,unknown,error,503,unverified (single observation),HTTP 503; Server-side failure,unverified
+brico_ok_it,brico,https://www.bricook.it/admin/bricook-store-locator/data.php,XML,unknown,False,False,unknown,error,error,unverified (single observation),,unverified
+burger_king_bd,burger,https://www.burgerkingbangladesh.com/assets/custom/js/microsite_map.js,unknown,unknown,True,True,yes,304,304,unverified (single observation),,unverified
+burger_king_fj,burger,https://www.burgerkingfiji.com/locations/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+burger_king_il,burger,https://webapi.mishloha.co.il/api/Rests/GetRestaurantsInfoByChainName/burgerking,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+burger_king_py,burger,https://www.burgerking.com.py/,HTML,verified,True,True,no (returned 200),200,200,unverified (single observation),,promising
+camille_la_vie_us,camille,//*[@class=,unknown,unknown,False,False,unknown,error,error,unverified (single observation),Invalid URL '//*[@class=': No scheme supplied. Perhaps you meant https:////*[@class=?; Incorrect or irrelevant URL,unverified
+camille_la_vie_us,camille,/pages/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),Invalid URL '/pages/': No scheme supplied. Perhaps you meant https:///pages/?; Incorrect or irrelevant URL,unverified
+camille_la_vie_us,camille,https://camillelavie.com/pages/store-locations,HTML,verified,True,False,no (returned 200),200,error,unverified (single observation),Incorrect or irrelevant URL,promising
+cancer_research_uk_gb,cancer,https://xss-content.ent.eu-west-1.aws.found.io/api/as/v1/engines/shops/search.json,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 401; Authentication or access restriction,unverified
+carls_jr_us,carls,https://locations.carlsjr.com/robots.txt,unknown,unknown,True,False,yes,304,error,unverified (single observation),,unverified
+casa_do_pao_de_queijo_br,casa,https://www.casadopaodequeijo.com.br/,HTML,verified,True,True,yes,200,304,unverified (single observation),,promising
+correo_paraguayo_py,correo,https://correoparaguayo.gov.py/sitio/agencias/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),"HTTPSConnectionPool(host='correoparaguayo.gov.py', port=443): Max retries exceeded with url: /sitio/agencias/ (Caused by NameResolutionError(""<urllib3.connection.HTTPSConnection object at 0x102d1ca50>: Failed to resolve 'correoparaguayo.gov.py' ([Errno 8] nodename nor servname provided, or not known)"")); Missing request parameters",unverified
+correo_paraguayo_py,correo,https://www.google.com/maps/d/kml?mid=%7Bmap_id%7D&forcekml=1,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 404; Missing request parameters,unverified
+costa_coffee_gg_gb_im_je,costa,https://www.costa.co.uk/api/mdm/,JSON,unknown,False,False,unknown,error,error,unverified (single observation),"HTTPSConnectionPool(host='www.costa.co.uk', port=443): Read timed out. (read timeout=15); Network or DNS failure",unverified
+cotton_on_group,cotton,https://cottonon.com/AU/store-finder/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Redirect or URL construction issue,possible
+cotton_on_group,cotton,https://cottonon.com/on/demandware.store/Sites-cog-au-Site/en_AU/Stores-FindStores,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 410; Redirect or URL construction issue,unverified
+dm,dm,"https://store-data-service.services.dmtech.com/stores/bbox/48.5166335,17.5121631,40.7139891,29.6190967",JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+dm,dm,"https://store-data-service.services.dmtech.com/stores/bbox/48.5166335,5.4052295,40.7139891,17.5121631",JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+dm,dm,"https://store-data-service.services.dmtech.com/stores/bbox/55.2791403,17.5121631,48.5166335,29.6190967",JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+dominos_pizza_pk,dominos,https://www.dominos.com.pk/api/customer/stores,JSON,verified,True,False,yes,304,error,unverified (single observation),,promising
+easybox_ro,easybox,https://sameday.ro/wp/wp-admin/admin-ajax.php?action=get_ooh_lockers_request&country=Romania,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Authentication or access restriction,unverified
+eko_me,eko,https://www.jugopetrol.co.me/stanice/prona-i-stanicu/,HTML,verified,False,True,no (returned 200),error,200,unverified (single observation),,possible
+ethiopost_et,ethiopost,https://ethio.post/branches/,HTML,verified,True,False,yes,304,error,unverified (single observation),,promising
+ethiopost_et,ethiopost,https://ethio.post/wp-json/wp/v2/,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+fare_rata_pf,fare,https://www.farerata.pf/fr/vos-bureaux-de-poste,HTML,verified,False,False,unknown,error,error,unverified (single observation),Missing request parameters,possible
+fare_rata_pf,fare,https://www.farerata.pf/fr/vos-bureaux-de-poste/%7Boffice%5B,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 404; Missing request parameters,unverified
+fast_shift_am,fast,https://www.fastshift.am/en/%D5%B4%D5%A1%D5%BD%D5%B6%D5%A1%D5%B3%D5%B5%D5%B8%D6%82%D5%B2%D5%A5%D6%80-%D5%BF%D5%A5%D6%80%D5%B4%D5%AB%D5%B6%D5%A1%D5%AC%D5%B6%D5%A5%D6%80,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+focus_on_furniture_au,focus,https://focusonfurniture.com.au/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+guernsey_post_gg,guernsey,https://www.guernseypost.com/locations-opening-hours,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Authentication or access restriction,unverified
+haypost_am,haypost,https://api.haypost.am/network?limit=1000&lng=am,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+haypost_am,haypost,https://api.haypost.am/page/10?lng=am,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+hm,hm,https://api.storelocator.hmgroup.tech/v2/brand/hm/stores/locale/en_us/country/%7Bcountry_code%7D?_type=json&campaigns=true&departments=true&openinghours=true,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Missing request parameters,unverified
+hm,hm,https://www.hm.com/entrance.ahtml,HTML,verified,False,False,unknown,error,error,unverified (single observation),Missing request parameters,possible
+hotel_bb,hotel,https://www.hotel-bb.com/sitemap.xml,XML,unknown,True,True,no (returned 200),200,200,unverified (single observation),,unverified
+howard_county_public_library_md_us,howard,https://maps.app.goo.gl/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),"HTTPSConnectionPool(host='maps.app.goo.gl', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x102d1c550>, 'Connection to maps.app.goo.gl timed out. (connect timeout=15)')); Incorrect or irrelevant URL",unverified
+howard_county_public_library_md_us,howard,https://www.google.com/maps/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Incorrect or irrelevant URL,possible
+howard_county_public_library_md_us,howard,https://www.hclibrary.org/robots.txt,unknown,unknown,False,False,unknown,error,error,unverified (single observation),Incorrect or irrelevant URL,unverified
+hsbc_uk_gb,hsbc,https://www.hsbc.co.uk/branch-list/,HTML,verified,False,True,unknown,error,error,unverified (single observation),,possible
+ici_paris_xl,ici,https://api.iciparisxl.{country}/api/v2/ici{country}2/stores?pageSize=10000&currentPage=0,JSON,unknown,False,False,unknown,error,error,unverified (single observation),"HTTPSConnectionPool(host='api.iciparisxl.%7bcountry%7d', port=443): Max retries exceeded with url: /api/v2/ici%7Bcountry%7D2/stores?pageSize=10000&currentPage=0 (Caused by NameResolutionError(""<urllib3.connection.HTTPSConnection object at 0x1028fe210>: Failed to resolve 'api.iciparisxl.%7bcountry%7d' ([Errno 8] nodename nor servname provided, or not known)"")); Missing request parameters",unverified
+ici_paris_xl,ici,https://www.iciparisxl.{item[,unknown,unknown,False,False,unknown,error,error,unverified (single observation),Failed to parse: https://www.iciparisxl.{item[; Missing request parameters,unverified
+israel_post_il,israel,https://mypostvouchars-prd.azureedge.net/branches/branches.json,JSON,verified,False,True,no (returned 200),error,200,unverified (single observation),,possible
+jamaica_post_jm,jamaica,https://jamaicapost.gov.jm/locations/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+jersey_post_je,jersey,https://www.jerseypost.com/Umbraco/Surface/Tools/Locations/,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 404; Redirect or URL construction issue,unverified
+jordan_post_jo,jordan,https://opendata.gov.jo/dataset/MIGRATED-2830-2023/resource/045690bf-83f2-4175-8b91-8343a537c3e4/download/-.csv,CSV,unknown,True,True,yes,304,304,unverified (single observation),,unverified
+jordan_post_jo,jordan,https://opendata.gov.jo/dataset/MIGRATED-2832-2023/resource/188cfcbf-97b2-452f-bf68-25b2c777d1da/download/-.csv,CSV,unknown,True,True,yes,304,304,unverified (single observation),,unverified
+kazpost_kz,kazpost,?latitudeFrom=40&latitudeTo=56&longitudeFrom=46&longitudeTo=88,unknown,unknown,False,False,unknown,error,error,unverified (single observation),Invalid URL '?latitudeFrom=40&latitudeTo=56&longitudeFrom=46&longitudeTo=88': No scheme supplied. Perhaps you meant https://?latitudeFrom=40&latitudeTo=56&longitudeFrom=46&longitudeTo=88?; Missing request parameters,unverified
+kazpost_kz,kazpost,https://gateway.prod.qazpost.kz/mail-app/api/public/find_dep_fp,JSON,unverified,False,False,unknown,error,error,unverified (single observation),Missing request parameters,unverified
+latvijas_pasts_letter_boxes_lv,latvijas,https://mans.pasts.lv/api/public/addresses/service_location?type%5B%5D=9&search=&itemsPerPage=1500&page=1,JSON,unknown,False,False,unknown,error,error,unverified (single observation),HTTP 403; Missing request parameters,unverified
+libanpost_lb,libanpost,https://www.libanpost.com/english/tools-support/where-are-we,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+liberty_bank_ge,liberty,https://www.libertybank.ge/ka/chven-shesakheb/kompaniis-shesakheb/bankomatebi,HTML,verified,False,True,no (returned 200),error,200,unverified (single observation),,possible
+libya_post_ly,libya,https://cons.libyapost.ly:54800/api/office?page=%7B%7D,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 401; Missing request parameters,unverified
+liechtensteinische_post_li,liechtensteinische,https://post.li/standorte/,HTML,verified,False,True,no (returned 200),error,200,unverified (single observation),,possible
+lietuvos_pastas_lt,lietuvos,https://post.lt/post/codes/search/getPlaces,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+maisons_du_monde,maisons,https://www.maisonsdumonde.com/,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Authentication or access restriction,unverified
+maltapost_mt,maltapost,"https://maltapost-letterboxes.cyberpasstg.net/maltapost/BusinessLogic/TagPublic?TagCity=%5BALL%5D&TagTypes=%7BLETTERBOX%7D,%7BPOST_OFFICE%7D,%7BSUB_POST_OFFICE%7D",JSON,unverified,False,False,unknown,error,error,unverified (single observation),Missing request parameters,unverified
+mcdonalds_lt,mcdonalds,https://mcd.lt/locate/,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Authentication or access restriction,unverified
+mcdonalds_lv,mcdonalds,https://mcdonalds.lv/atrodi/,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Authentication or access restriction,unverified
+my_eye_dr,my,https://locations.myeyedr.com/sitemap1.xml,XML,unknown,True,True,no (returned 200),200,200,unverified (single observation),,unverified
+myanmar_post_mm,myanmar,https://myanmarpost.com.mm/post-offices?tab=office&page=%7Bpage%7D,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+myanmar_post_mm,myanmar,https://myanmarpost.com.mm/post-offices?tab=office&page=1,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+nandos_bh,nandos,https://api.locationbank.net/storelocator/StoreLocatorAPI?clientId=3ab346a9-c73c-4c86-8c6e-9a8db5c1ef4e,JSON,verified,False,False,unknown,error,error,unverified (single observation),Redirect or URL construction issue,possible
+nandos_bh,nandos,https://store.nandos.com.bh/details/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),HTTP 404; Redirect or URL construction issue,unverified
+nandos_om,nandos,https://api.locationbank.net/storelocator/StoreLocatorAPI?clientId=90338503-bd4f-4b54-bb94-bb002f2717ec,JSON,verified,False,False,unknown,error,error,unverified (single observation),Network or DNS failure,possible
+nandos_om,nandos,https://store.nandosoman.com/details/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),"HTTPSConnectionPool(host='store.nandosoman.com', port=443): Max retries exceeded with url: /details/ (Caused by NameResolutionError(""<urllib3.connection.HTTPSConnection object at 0x102d1c050>: Failed to resolve 'store.nandosoman.com' ([Errno 8] nodename nor servname provided, or not known)"")); Network or DNS failure",unverified
+nandos_zw,nandos,https://api.locationbank.net/storelocator/StoreLocatorAPI?clientId=c8ca9649-9a2a-4338-8809-63dc2ac37da0,JSON,verified,False,False,unknown,error,error,unverified (single observation),Redirect or URL construction issue,possible
+nandos_zw,nandos,https://store.nandos.co.zw/details/,HTML,unknown,False,False,unknown,error,error,unverified (single observation),HTTP 404; Redirect or URL construction issue,unverified
+nedbank_mz,nedbank,https://www.nedbank.co.mz/apoio-ao-cliente/rede-de-balc%C3%B5es.aspx,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+nedbank_mz,nedbank,https://www.nedbank.co.mz/en/customer-support/branches.aspx,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+npr_pp_tjenester_no,npr,https://data-npr.udir.no/swagger/index.html,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+ntt_le_perc_jp,ntt,https://sasp.mapion.co.jp/b/leperc/info/%7B%7D/,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 503; Missing request parameters,unverified
+o_ku_sushi_us,o,https://www.o-kusushi.com/store-locator/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+ofogh_kourosh_ir,ofogh,https://okcs.com/stores,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+opt_nc,opt,https://office.opt.nc/fr/carte-du-reseau-d-agences,HTML,verified,True,True,no (returned 200),200,200,unverified (single observation),Missing request parameters,promising
+opt_nc,opt,https://office.opt.nc/fr/opt/maps/agency?id=%7Bagency%5B,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 500; Missing request parameters,unverified
+or_en_cash_fr,or,https://www.orencash.fr/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+or_en_cash_fr,or,https://www.orencash.fr/boutiques-achat-or/,HTML,verified,True,True,yes,200,304,unverified (single observation),,promising
+pakistan_post_pk,pakistan,https://apply.dfpo.pk/DAL/,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+paositra_malagasy_mg,paositra,https://umap.openstreetmap.fr/map/573038/download/,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+papa_johns_az,papa,https://order.papajohns.az/papajohns.az/store-locator/?lang=az,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+papa_johns_cr,papa,https://api.papajohns.cr/v1/stores?latitude=0&longitude=0,JSON,verified,True,False,yes,304,error,unverified (single observation),,promising
+papa_johns_cr,papa,https://www.papajohns.cr/locales/,HTML,verified,True,False,yes,304,error,unverified (single observation),,promising
+papa_johns_kz,papa,https://order.papajohns.kz/papajohnskazakhstan/store-locator/?lang=kz,HTML,verified,True,False,no (returned 200),200,error,unverified (single observation),,promising
+papa_johns_qa,papa,https://order.papajohns.qa/papajohnsqatar/store-locator/?lang=en,HTML,verified,True,False,no (returned 200),200,error,unverified (single observation),,promising
+papa_johns_uz,papa,https://order.papajohns.uz/papajohns.uz/store-locator,HTML,verified,True,False,no (returned 200),200,error,unverified (single observation),,promising
+pep_ao,pep,https://www.pep.co.ao/api/stores.json,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+pick_up_stix_us,pick,https://www.pickupstix.com/locations,HTML,verified,False,False,unknown,error,error,unverified (single observation),,possible
+posta_moldovei_md,posta,https://main-api.posta.md/nomenclatures/postal-offices?page=%7B%7D&per_page=2000,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 404; Missing request parameters,unverified
+posta_uganda_ug,posta,https://api.ugapost.go.ug/api/postal-stations?page=1&limit=1000,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+posturinn_is,posturinn,https://api.mobiz.posturinn.is/api/v1/letter-postboxes,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+posturinn_is,posturinn,https://api.mobiz.posturinn.is/api/v1/locations?locationTypes=PostOffice,JSON,verified,False,False,unknown,error,error,unverified (single observation),,possible
+price_chopper_kc_us,price,https://www.mypricechopper.com/public/stores,JSON,verified,False,True,no (returned 200),error,200,unverified (single observation),,possible
+royal_gibraltar_post_office_gi,royal,Pillar Box Locations,unknown,unknown,False,False,unknown,error,error,unverified (single observation),Invalid URL 'Pillar Box Locations': No scheme supplied. Perhaps you meant https://Pillar Box Locations?; Incorrect or irrelevant URL,unverified
+royal_gibraltar_post_office_gi,royal,https://post.gi/4814-2/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Incorrect or irrelevant URL,possible
+royal_gibraltar_post_office_gi,royal,https://post.gi/building-locations/,HTML,verified,False,False,unknown,error,error,unverified (single observation),Incorrect or irrelevant URL,possible
+san_ju_san_bank_jp,san,https://pkg.navitime.co.jp/33bank/api/proxy2/shop/list,JSON,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Missing request parameters,unverified
+san_ju_san_bank_jp,san,https://pkg.navitime.co.jp/33bank/spot/detail?code=%7B%7D,HTML,unverified,False,False,unknown,error,error,unverified (single observation),HTTP 403; Missing request parameters,unverified

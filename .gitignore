@@ -1,8 +1,9 @@
 # Large raw data (keep local only)
 data/seed/raw/
+data/seed/locations.geojson
 # Python
 __pycache__/
 *.pyc
 .pytest_cache/
 # OS
-.DS_Storedata/seed/locations.geojson
+.DS_Store
