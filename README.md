@@ -8,56 +8,66 @@ Uses AllThePlaces as source of real websites and reference location data.
 
 ## Step 1: Collect seed dataset
 ```bash
-# Basic (current seed only)
 python3 scripts/collect_seed.py --sample-size 100 --output data/seed
-
-# With historical comparison (downloads ~2.5GB archive)
-python3 scripts/collect_seed.py --sample-size 100 --output data/seed --historical
 ```
-
-### Options
-- `--sample-size N` (default 100)
-- `--output PATH` (default data/seed)
-- `--timeout SEC` (default 30)
-- `--concurrency N` (default 4)
-- `--seed N` (default 42)
-- `--min-features N` (default 5)
-- `--historical` attempt historical comparison
-- `--freshness-threshold-days N` (default 14)
-
-### Output (Step 1)
-See `data/seed/`: manifest.csv, locations.geojson, changes.csv, http_metadata.jsonl, collection_report.md, raw/.
 
 ## Step 2: Diagnose failed HTTP probes
 ```bash
 python3 scripts/diagnose_probes.py --output data/seed
 ```
-Produces `data/seed/probe_diagnostics.csv` with failure classifications and retry results.
 
 ## Step 3: Validate change signals
 ```bash
 python3 scripts/evaluate_signals.py --output data/seed
 ```
 
-### Options
-- `--timeout SEC` (default 30)
-- `--concurrency N` (default 4)
-- `--historical-run RUN_ID` (default: auto-detect previous run)
-- `--skip-conditional` skip conditional HTTP request tests
-- `--skip-historical` skip historical comparison
+## Step 4: Monitoring engine
+```bash
+# Build registry
+python3 scripts/monitor.py --registry data/seed/monitoring_registry.csv --dry-run
 
-### Output (Step 3)
-- `data/seed/resource_inventory.csv` — deduplicated resource inventory
-- `data/seed/conditional_probe_results.csv` — ETag/Last-Modified test results
-- `data/seed/provider_groups.csv` — shared data provider analysis
-- `data/seed/signal_evaluation.csv` — per-resource evaluation metrics
-- `data/seed/changes.csv` — historical change candidates
+# Run monitoring cycle
+python3 scripts/monitor.py --registry data/seed/monitoring_registry.csv --live
+
+# ETag audit
+python3 scripts/monitor.py --registry data/seed/monitoring_registry.csv --audit-etags
+
+# Reconciliation
+python3 scripts/monitor.py --registry data/seed/monitoring_registry.csv --reconcile --interval-hours 168
+```
+
+## Step 6: Selective extraction
+```bash
+# Dry run
+python3 scripts/extract.py --output data/seed --dry-run
+
+# Live extraction
+python3 scripts/extract.py --output data/seed --live
+```
+
+## Step 7: End-to-end evaluation
+```bash
+# Dry run
+python3 scripts/end_to_end.py --output data/seed --dry-run
+
+# Live
+python3 scripts/end_to_end.py --output data/seed --live
+```
+
+## Live observation
+```bash
+python3 scripts/live_observe.py --output data/seed --label "baseline"
+python3 scripts/signal_compare.py --output data/seed
+```
 
 ## Tests
 ```bash
-cd /Users/chavanarohith/Desktop/ChainXY && python3 -m pytest tests/ -q
+python3 -m pytest tests/ -q
 ```
-45 tests (28 Step 1+2, 17 Step 3). All passing.
+181 tests (all passing). Ruff clean.
+
+## Output files
+See `data/seed/`: manifest.csv, locations.geojson (gitignored), changes.csv, http_metadata.jsonl, probe_diagnostics.csv, resource_inventory.csv, conditional_probe_results.csv, provider_groups.csv, signal_evaluation.csv, signal_evaluation_report.md, collection_report.md, monitoring_registry.csv, monitor_run.jsonl, monitoring_report.md, baselines.jsonl, extraction_results.jsonl, qa_results.jsonl, observations.jsonl, e2e_run.jsonl, synthetic/
 
 ## Data files (gitignored)
 - `data/seed/raw/` — per-spider GeoJSON files (~116MB)

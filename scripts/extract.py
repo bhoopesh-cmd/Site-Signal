@@ -3,14 +3,14 @@
 
 Extracts location data from a resource only when triggered by the monitor.
 Usage:
-    python3 scripts/extract.py --resource-url URL --spider NAME --strategy A --baseline-id ID
+    python3 scripts/extract.py --output data/seed --live
 """
 import argparse
-import csv as _csv
 import hashlib
 import json
 import sys
 import time
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -18,11 +18,11 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import baseline_store as bs
+import qa
 
 import collect_seed as cs
 
 USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"
-TOKEN_RE = cs.TOKEN_RE
 
 
 def now_iso():
@@ -100,7 +100,7 @@ def extract_sitemap_features(response_text):
 def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
     """Extract location data from a resource.
 
-    Returns extraction result dict.
+    Returns extraction result dict with QA result included.
     """
     spider = resource.get("spider", "")
     url = resource.get("resource_url", "")
@@ -108,7 +108,7 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
     method = resource.get("http_method", "GET") or "GET"
 
     result = {
-        "extraction_id": str(__import__("uuid").uuid4()),
+        "extraction_id": str(uuid.uuid4()),
         "spider": spider,
         "resource_url": redact_url(url),
         "timestamp": now_iso(),
@@ -125,6 +125,7 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
         "elapsed_ms": 0,
         "bytes_transferred": 0,
         "dry_run": dry_run,
+        "qa_result": None,
     }
 
     if dry_run:
@@ -137,6 +138,16 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
         result["status"] = "fallback_needed"
         result["extraction_method"] = "browser_needed"
         result["error"] = "Browser interaction required; fallback to existing scraper"
+        # Run QA (will fail — no features)
+        qa_result = qa.run_qa([], baseline_count=0)
+        qa_result["extraction_id"] = result["extraction_id"]
+        qa_result["spider"] = spider
+        qa_result["extraction_status"] = "fallback_needed"
+        qa_result["data_quality_status"] = "not_evaluated"
+        qa_result["baseline_status"] = "preserved"
+        qa_result["passed"] = False
+        qa_result["issues"] = ["Browser rendering required; extraction not performed"]
+        result["qa_result"] = qa_result
         return result
 
     # Strategy E: unresolved
@@ -144,11 +155,21 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
         result["status"] = "skipped"
         result["extraction_method"] = "unresolved"
         result["error"] = "Resource unresolved; no extraction method available"
+        qa_result = qa.run_qa([], baseline_count=0)
+        qa_result["extraction_id"] = result["extraction_id"]
+        qa_result["spider"] = spider
+        qa_result["extraction_status"] = "skipped"
+        qa_result["data_quality_status"] = "not_evaluated"
+        qa_result["baseline_status"] = "preserved"
+        qa_result["passed"] = False
+        qa_result["issues"] = ["Resource unresolved"]
+        result["qa_result"] = qa_result
         return result
 
     t0 = time.time()
     try:
         headers = {"User-Agent": USER_AGENT}
+        method = resource.get("http_method", "GET") or "GET"
         if method == "POST":
             r = requests.post(url, timeout=timeout, headers=headers, allow_redirects=True)
         else:
@@ -160,6 +181,15 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
         if not (200 <= r.status_code < 400):
             result["status"] = "failed"
             result["error"] = f"HTTP {r.status_code}"
+            qa_result = qa.run_qa([], baseline_count=0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "failed"
+            qa_result["data_quality_status"] = "not_evaluated"
+            qa_result["baseline_status"] = "preserved"
+            qa_result["passed"] = False
+            qa_result["issues"] = [f"HTTP {r.status_code}"]
+            result["qa_result"] = qa_result
             return result
 
         # Compute body hash
@@ -175,11 +205,21 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
                 try:
                     cr = requests.get(url, timeout=timeout, headers=cond_headers, allow_redirects=True)
                     if cr.status_code == 304:
-                        # Unchanged — reuse baseline
                         result["status"] = "unchanged"
                         result["extraction_method"] = "conditional_304"
                         result["normalized_fingerprint"] = baseline.get("normalized_fingerprint") if baseline else None
                         result["data_changed"] = False
+                        # QA passes (unchanged)
+                        qa_result = qa.run_qa([], baseline_count=0)
+                        qa_result["extraction_id"] = result["extraction_id"]
+                        qa_result["spider"] = spider
+                        qa_result["extraction_status"] = "unchanged"
+                        qa_result["data_quality_status"] = "passed"
+                        qa_result["baseline_status"] = "unchanged"
+                        qa_result["passed"] = True
+                        qa_result["overall_score"] = 1.0
+                        qa_result["issues"] = []
+                        result["qa_result"] = qa_result
                         return result
                 except Exception:
                     pass
@@ -193,11 +233,15 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
                 ct = "application/json"
             except (json.JSONDecodeError, TypeError):
                 pass
+
+        features = None
+        fp = None
+        method_name = None
+
         if "json" in ct:
             features, fp, method_name = extract_json_features(r.text, spider)
             result["extraction_method"] = method_name or "json_api"
         elif "xml" in ct or url.endswith(".xml") or url.endswith(".php"):
-            # Check if standard sitemap or custom XML
             if "<urlset" in r.text.lower() or "<sitemapindex" in r.text.lower():
                 urls, lastmods, fp = extract_sitemap_features(r.text)
                 result["extraction_method"] = "sitemap_crawl"
@@ -206,25 +250,62 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
                 if baseline and baseline.get("normalized_fingerprint"):
                     result["data_changed"] = (fp != baseline["normalized_fingerprint"])
                 result["status"] = "success"
+                # Run QA (sitemap: no feature-level validation, just count)
+                qa_result = qa.run_qa([], baseline_count=result["features_extracted"])
+                qa_result["extraction_id"] = result["extraction_id"]
+                qa_result["spider"] = spider
+                qa_result["extraction_status"] = "success"
+                qa_result["data_quality_status"] = "passed"
+                qa_result["baseline_status"] = "updated"
+                qa_result["passed"] = True
+                qa_result["overall_score"] = 1.0
+                qa_result["issues"] = []
+                result["qa_result"] = qa_result
                 return result
             else:
-                # Custom XML format (not standard sitemap)
                 result["extraction_method"] = "custom_xml"
                 result["status"] = "partial"
                 result["error"] = "Custom XML format; needs specialized parser"
+                # Run QA (partial)
+                qa_result = qa.run_qa([], baseline_count=0)
+                qa_result["extraction_id"] = result["extraction_id"]
+                qa_result["spider"] = spider
+                qa_result["extraction_status"] = "partial"
+                qa_result["data_quality_status"] = "not_evaluated"
+                qa_result["baseline_status"] = "preserved"
+                qa_result["passed"] = False
+                qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+                result["qa_result"] = qa_result
                 return result
         elif "csv" in ct or url.endswith(".csv"):
             result["extraction_method"] = "csv"
             result["status"] = "partial"
             result["error"] = "CSV parsing not yet implemented"
+            qa_result = qa.run_qa([], baseline_count=0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "partial"
+            qa_result["data_quality_status"] = "not_evaluated"
+            qa_result["baseline_status"] = "preserved"
+            qa_result["passed"] = False
+            qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+            result["qa_result"] = qa_result
             return result
         elif "javascript" in ct:
             result["extraction_method"] = "javascript"
             result["status"] = "partial"
             result["error"] = "JavaScript bundle; needs browser rendering"
+            qa_result = qa.run_qa([], baseline_count=0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "partial"
+            qa_result["data_quality_status"] = "not_evaluated"
+            qa_result["baseline_status"] = "preserved"
+            qa_result["passed"] = False
+            qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+            result["qa_result"] = qa_result
             return result
-        elif "html" in ct:
-            # Try JSON-LD extraction
+        elif "html" in ct or url.endswith(".html") or url.endswith("/"):
             features, fp, method_name = extract_json_features(r.text, spider)
             if features:
                 result["extraction_method"] = method_name or "html_scrape"
@@ -232,11 +313,29 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
                 result["extraction_method"] = "html_unextractable"
                 result["status"] = "partial"
                 result["error"] = "No structured data found in HTML; browser may be needed"
+                qa_result = qa.run_qa([], baseline_count=0)
+                qa_result["extraction_id"] = result["extraction_id"]
+                qa_result["spider"] = spider
+                qa_result["extraction_status"] = "partial"
+                qa_result["data_quality_status"] = "not_evaluated"
+                qa_result["baseline_status"] = "preserved"
+                qa_result["passed"] = False
+                qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+                result["qa_result"] = qa_result
                 return result
         else:
             result["extraction_method"] = "unknown"
             result["status"] = "partial"
             result["error"] = f"Unsupported content type: {ct}"
+            qa_result = qa.run_qa([], baseline_count=0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "partial"
+            qa_result["data_quality_status"] = "not_evaluated"
+            qa_result["baseline_status"] = "preserved"
+            qa_result["passed"] = False
+            qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+            result["qa_result"] = qa_result
             return result
 
         if features:
@@ -245,15 +344,42 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
             if baseline and baseline.get("normalized_fingerprint"):
                 result["data_changed"] = (fp != baseline["normalized_fingerprint"])
             result["status"] = "success"
+            # Run QA on extracted features
+            qa_result = qa.run_qa(features, baseline_count=result["features_extracted"] if baseline else 0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "success"
+            qa_result["data_quality_status"] = "passed" if qa_result["passed"] else "failed"
+            qa_result["baseline_status"] = "updated" if qa_result["passed"] else "preserved"
+            qa_result["passed"] = qa_result["passed"]
+            result["qa_result"] = qa_result
         else:
             result["extraction_method"] = "no_features"
             result["status"] = "partial"
             result["error"] = "No location features extracted"
+            qa_result = qa.run_qa([], baseline_count=0)
+            qa_result["extraction_id"] = result["extraction_id"]
+            qa_result["spider"] = spider
+            qa_result["extraction_status"] = "partial"
+            qa_result["data_quality_status"] = "not_evaluated"
+            qa_result["baseline_status"] = "preserved"
+            qa_result["passed"] = False
+            qa_result["issues"] = [f"Extraction incomplete: {result['error']}"]
+            result["qa_result"] = qa_result
 
     except Exception as e:
         result["status"] = "failed"
         result["error"] = str(e)
         result["elapsed_ms"] = int((time.time() - t0) * 1000)
+        qa_result = qa.run_qa([], baseline_count=0)
+        qa_result["extraction_id"] = result["extraction_id"]
+        qa_result["spider"] = spider
+        qa_result["extraction_status"] = "failed"
+        qa_result["data_quality_status"] = "not_evaluated"
+        qa_result["baseline_status"] = "preserved"
+        qa_result["passed"] = False
+        qa_result["issues"] = [f"Extraction failed: {e!s}"]
+        result["qa_result"] = qa_result
 
     return result
 
@@ -274,12 +400,13 @@ def extract_batch(resources, baselines_map, timeout=15, dry_run=False, concurren
             except Exception as e:
                 r = futures[fut]
                 results.append({
-                    "extraction_id": str(__import__("uuid").uuid4()),
+                    "extraction_id": str(uuid.uuid4()),
                     "spider": r["spider"],
                     "resource_url": r["resource_url"],
                     "timestamp": now_iso(),
                     "status": "failed",
                     "error": str(e),
+                    "qa_result": None,
                 })
     return results
 
@@ -290,7 +417,9 @@ def save_extraction_results(out, results):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a") as f:
         for r in results:
-            f.write(json.dumps(r) + "\n")
+            # Don't save features (too large), but save qa_result
+            save_r = dict(r)
+            f.write(json.dumps(save_r) + "\n")
 
 
 def main():
@@ -314,6 +443,8 @@ def main():
     if not registry_path.exists():
         print(f"Registry not found: {registry_path}")
         sys.exit(1)
+
+    import csv as _csv
     registry = list(_csv.DictReader(open(registry_path)))
 
     if args.spider:
@@ -321,7 +452,7 @@ def main():
     if args.strategy:
         registry = [r for r in registry if r["primary_strategy"] == args.strategy]
     if args.max_resources > 0:
-        registry = [r for r in registry if r.get("primary_strategy") in ("A", "B", "C")]
+        registry = registry[:args.max_resources]
 
     # Filter to resources that would be extracted (strategies A, B, C)
     extractable = [r for r in registry if r.get("primary_strategy") in ("A", "B", "C")]
@@ -343,10 +474,12 @@ def main():
     from collections import Counter
     print("\n=== Extraction Summary ===")
     print(f"  Resources: {len(results)}")
-    print(f"  Status: {Counter(r.get('status') for r in results)}")
+    print(f"  Status: {dict(Counter(r.get('status') for r in results))}")
     print(f"  Features extracted: {sum(r.get('features_extracted', 0) for r in results)}")
     print(f"  Total bytes: {sum(r.get('bytes_transferred', 0) for r in results)}")
     print(f"  Total elapsed: {sum(r.get('elapsed_ms', 0) for r in results)}ms")
+    print(f"  QA passed: {sum(1 for r in results if r.get('qa_result', {}).get('passed'))}")
+    print(f"  QA failed: {sum(1 for r in results if not r.get('qa_result', {}).get('passed'))}")
 
 
 if __name__ == "__main__":

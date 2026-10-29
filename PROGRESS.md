@@ -224,7 +224,42 @@ Provider webhook → Conditional HTTP → Sitemap/feed check → Direct API fetc
 
 ---
 
-## Step 3: Validate Change Detection Against Location Data — COMPLETE
+## Step 7: End-to-End Evaluation and Final Architecture Assessment — COMPLETE
+
+**Date:** 2026-10-29
+**Status:** Done
+
+### What was done
+- Created `scripts/end_to_end.py` — orchestrates monitor → extract → QA → baseline update
+- Wired QA to real extracted features (stored QA result in extraction result)
+- Added fingerprint computation for Strategy B/C in monitor.py
+- Made dry-run truly dry (no extraction/QA in dry-run mode)
+- Added `docs/final_evaluation.md` — consolidated evaluation report
+- Updated `collection_report.md` with Step 7 findings
+
+### Key changes
+- Extraction results now include `qa_result` with real validation
+- Strategy B/C compute normalized fingerprints from JSON responses
+- Dry-run records "would_extract" without fetching
+- Baseline updated only on QA-passed extractions
+- Append-only logging for all stages
+
+### Results
+| Metric | Value |
+|---|---|
+| Tests | 181 (all passing) |
+| Ruff errors | 0 |
+| Extractions (live) | 81 (19 success, 10 unchanged, 50 partial, 2 failed) |
+| Features extracted | 23,077 |
+| QA results | 81 (29 passed, 52 not_evaluated) |
+| Baselines | 17 |
+| Monitoring runs | 8 |
+
+### Final recommendation
+Conditional HTTP: verified-subset-only (14 of 117 resources). Direct payload comparison for 56 resources without validators. Browser fallback for 4 JS-rendered sites. Unresolved for 32 inaccessible/ambiguous sources. Live observation needed to validate validator reliability.
+
+### GitHub
+- Pushed to https://github.com/bhoopesh-cmd/Site-Signal
 
 **Date:** 2026-10-29
 **Status:** Done

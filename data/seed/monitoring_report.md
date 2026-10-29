@@ -1,8 +1,8 @@
 # Monitoring Report
 
-- Run ID: 81ff0287
-- Run timestamp: 2026-10-29T21:45:16.878245+00:00
-- Label: monitor
+- Run ID: 23b9dfe1
+- Run timestamp: 2026-10-29T23:57:43.236852+00:00
+- Label: e2e
 - Dry run: True
 
 ## Metrics
@@ -10,7 +10,7 @@
 - Resources checked: 5
 - Requests issued: 5
 - Total bytes transferred: 5539637
-- Total elapsed: 2953ms
+- Total elapsed: 6458ms
 - Confidently unchanged: 0
 - Potential changes: 0
 - Extraction jobs triggered: 0

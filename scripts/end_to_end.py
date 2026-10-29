@@ -88,43 +88,30 @@ def run_end_to_end(out, dry_run=True, timeout=15, concurrency=4, max_resources=0
     extraction_results = []
     qa_results = []
 
-    if extractable:
-        # Extract
-        ext_results = ex.extract_batch(extractable, baselines_map, timeout=timeout, dry_run=dry_run, concurrency=concurrency)
+    if extractable and not dry_run:
+        # Extract (live mode only)
+        ext_results = ex.extract_batch(extractable, baselines_map, timeout=timeout, dry_run=False, concurrency=concurrency)
         ex.save_extraction_results(out, ext_results)
         extraction_results = ext_results
 
-        # QA
+        # QA — use stored QA result from extraction
         qa_res = []
         for er in ext_results:
-            feature_count = er.get("features_extracted", 0)
-            status = er.get("status", "unknown")
-            qa_result = qa.run_qa([], baseline_count=0)
-            qa_result["extraction_id"] = er.get("extraction_id")
-            qa_result["spider"] = er.get("spider")
-            qa_result["extraction_status"] = status
-            if status in ("success", "unchanged"):
-                qa_result["data_quality_status"] = "passed"
-                qa_result["passed"] = True
-                qa_result["overall_score"] = 1.0
-                qa_result["issues"] = []
-                qa_result["baseline_status"] = "updated" if status == "success" else "unchanged"
-            elif status in ("failed",):
-                qa_result["data_quality_status"] = "not_evaluated"
-                qa_result["passed"] = False
-                qa_result["issues"] = [f"Extraction failed: {er.get('error', 'unknown')}"]
-                qa_result["baseline_status"] = "preserved"
-            elif status in ("partial",):
-                qa_result["data_quality_status"] = "not_evaluated"
-                qa_result["passed"] = False
-                qa_result["issues"] = [f"Extraction incomplete: {er.get('error', 'unknown')}"]
-                qa_result["baseline_status"] = "preserved"
+            qr = er.get("qa_result")
+            if qr:
+                qr["extraction_id"] = er.get("extraction_id")
+                qr["spider"] = er.get("spider")
+                qa_res.append(qr)
             else:
+                qa_result = qa.run_qa([], baseline_count=0)
+                qa_result["extraction_id"] = er.get("extraction_id")
+                qa_result["spider"] = er.get("spider")
+                qa_result["extraction_status"] = er.get("status", "unknown")
                 qa_result["data_quality_status"] = "not_evaluated"
-                qa_result["passed"] = False
-                qa_result["issues"] = [f"Unknown extraction status: {status}"]
                 qa_result["baseline_status"] = "preserved"
-            qa_res.append(qa_result)
+                qa_result["passed"] = False
+                qa_result["issues"] = ["No QA result stored"]
+                qa_res.append(qa_result)
 
         qa.save_qa_results(out, qa_res)
         qa_results = qa_res
@@ -150,6 +137,19 @@ def run_end_to_end(out, dry_run=True, timeout=15, concurrency=4, max_resources=0
                 bs.save_baseline(out, new_baseline)
                 baselines_map[(spider, url)] = new_baseline
                 print(f"  Baseline updated: {spider}")
+    elif extractable and dry_run:
+        # Dry run: record would_extract without fetching
+        for res in extractable:
+            extraction_results.append({
+                "extraction_id": str(uuid.uuid4()),
+                "spider": res["spider"],
+                "resource_url": res["resource_url"],
+                "timestamp": now_iso(),
+                "status": "would_extract",
+                "extraction_method": "dry_run",
+                "dry_run": True,
+            })
+        print(f"  Dry run: {len(extractable)} resources would be extracted")
 
     # Write monitoring report
     mon.write_monitoring_report(out, decisions, metrics)

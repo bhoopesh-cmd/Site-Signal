@@ -498,12 +498,24 @@ def execute_strategy(resource, timeout=15, baseline=None):
                     result["error"] = str(e)
                     result["failed"] = True
 
-        # Strategy B/C: Direct payload — record body hash for comparison
+        # Strategy B/C: Direct payload — compute fingerprint if possible
         if strategy in ("B", "C"):
-            result["body_hash"] = hashlib.sha256(r.content).hexdigest()
+            result["body_hash"] = hashlib.sha256(r.content).hexdigest() if r.content else None
+            # Try to extract location features for fingerprint
+            try:
+                features, fp = bs.extract_location_features(r.text, r.get("spider", ""))
+                if fp:
+                    result["normalized_fingerprint"] = fp
+                    result["fingerprint_method"] = "extracted"
+                else:
+                    result["fingerprint_method"] = "body_hash_proxy"
+            except Exception:
+                result["fingerprint_method"] = "body_hash_proxy"
             # Check if baseline exists and differs
             if baseline and baseline.get("body_hash"):
                 result["body_changed"] = (result["body_hash"] != baseline["body_hash"])
+            if baseline and baseline.get("normalized_fingerprint") and result.get("normalized_fingerprint"):
+                result["data_changed"] = (result["normalized_fingerprint"] != baseline["normalized_fingerprint"])
 
     except Exception as e:
         result["error"] = str(e)
