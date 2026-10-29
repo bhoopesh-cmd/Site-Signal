@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Shell(/opt/anaconda3/bin/python:*)"
-    ],
-    "deny": [],
-    "defaultMode": "default"
-  }
-}
