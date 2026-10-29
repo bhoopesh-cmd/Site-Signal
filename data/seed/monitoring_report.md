@@ -1,36 +1,34 @@
 # Monitoring Report
 
-- Run ID: 7b12bb04
-- Run timestamp: 2026-10-29T20:11:37.570640+00:00
+- Run ID: 81ff0287
+- Run timestamp: 2026-10-29T21:45:16.878245+00:00
 - Label: monitor
 - Dry run: True
 
 ## Metrics
 
-- Resources checked: 117
-- Requests issued: 117
-- Total bytes transferred: 54271434
-- Total elapsed: 265920ms
+- Resources checked: 5
+- Requests issued: 5
+- Total bytes transferred: 5539637
+- Total elapsed: 2953ms
 - Confidently unchanged: 0
 - Potential changes: 0
 - Extraction jobs triggered: 0
 - QA jobs triggered: 0
-- Failures: 38
-- Unknown states: 112
-- Fallback executions: 112
+- Failures: 1
+- Unknown states: 3
+- Fallback executions: 3
 
 ## Decisions
 
-- unknown: 112
-- would_skip: 5
+- unknown: 3
+- would_skip: 2
 
 ## Strategy distribution
 
-- A: 20
-- B: 56
-- C: 5
-- D: 4
-- E: 32
+- A: 2
+- B: 2
+- E: 1
 
 ## Notes
 

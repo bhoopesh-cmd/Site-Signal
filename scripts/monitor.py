@@ -20,6 +20,8 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import baseline_store as bs
+
 import collect_seed as cs
 
 USER_AGENT = "ChainXY-seed-collector/1.0 (+research)"
@@ -177,6 +179,8 @@ def build_registry(out):
             "strategy_name": STRATEGY_NAMES[strategy],
             "validator_type": "etag" if r.get("etag") else ("last_modified" if r.get("last_modified") else "none"),
             "validator_availability": "present" if (r.get("etag") or r.get("last_modified")) else "absent",
+            "etag": r.get("etag", ""),
+            "last_modified": r.get("last_modified", ""),
             "etag_strength": r.get("etag_strength", "none") if r.get("etag_strength") else ("weak" if (r.get("etag", "").startswith('W/"')) else ("strong" if r.get("etag") else "none")),
             "location_data_verified": r.get("contains_location_data", "unknown"),
             "confidence": confidence,
@@ -264,6 +268,14 @@ def route(resource, result):
                 "fallback_executed": False,
             }
         if status == 200:
+            # Validator changed but body unchanged → false positive
+            if result.get("validator_changed") and body_changed is False:
+                return {
+                    "decision": "skip",
+                    "justification": "Validator changed but body unchanged (false positive)",
+                    "confidence": "medium",
+                    "fallback_executed": False,
+                }
             if body_changed is True and data_changed is True:
                 return {
                     "decision": "trigger_extraction",
@@ -394,6 +406,11 @@ def execute_strategy(resource, timeout=15, baseline=None):
         result["etag"] = r.headers.get("ETag")
         result["last_modified"] = r.headers.get("Last-Modified")
         result["bytes_transferred"] = len(r.content) if r.content else 0
+        # Always compute body hash for comparison
+        if r.content:
+            result["body_hash"] = hashlib.sha256(r.content).hexdigest()
+        else:
+            result["body_hash"] = None
 
         if not (200 <= r.status_code < 400):
             result["failed"] = True
@@ -586,7 +603,12 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
     run_id = str(uuid.uuid4())[:8]
     run_ts = now_iso()
 
+    # Load baselines
+    baselines = bs.load_baselines(out)
+    print(f"Loaded {len(baselines)} existing baselines")
+
     decisions = []
+    changes = []  # detected changes
     metrics = {
         "run_id": run_id,
         "run_timestamp": run_ts,
@@ -612,11 +634,25 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
         strategy = r.get("primary_strategy", "E")
         metrics["strategies"][strategy] = metrics["strategies"].get(strategy, 0) + 1
 
+        # Load baseline
+        baseline = bs.get_latest_baseline(baselines, r["spider"], r["resource_url"])
+
         # Execute strategy
-        result = execute_strategy(r, timeout=timeout)
+        result = execute_strategy(r, timeout=timeout, baseline=baseline)
         metrics["requests_issued"] += 1
         metrics["total_bytes"] += result.get("bytes_transferred", 0)
         metrics["total_elapsed_ms"] += result.get("elapsed_ms", 0)
+
+        # Compare with baseline
+        comparison = bs.compare_baselines(baseline, {
+            "body_hash": result.get("body_hash"),
+            "normalized_fingerprint": result.get("normalized_fingerprint"),
+            "etag": result.get("etag"),
+            "last_modified": result.get("last_modified"),
+        })
+        result["body_changed"] = comparison.get("body_changed", "unknown")
+        result["data_changed"] = comparison.get("data_changed", "unknown")
+        result["validator_changed"] = comparison.get("validator_changed", False)
 
         # Route
         decision = route(r, result)
@@ -637,6 +673,20 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
             metrics["potential_changes"] += 1
             metrics["extraction_jobs_triggered"] += 1
             metrics["qa_jobs_triggered"] += 1
+            # Record change
+            changes.append({
+                "spider": r["spider"],
+                "resource_url": redact_url(r["resource_url"]),
+                "change_type": "detected",
+                "baseline_id": baseline.get("baseline_id", "") if baseline else "",
+                "current_observation": result.get("body_hash", ""),
+                "changed_fields": result.get("changed_fields", ""),
+                "baseline_value": baseline.get("body_hash", "") if baseline else "",
+                "current_value": result.get("body_hash", ""),
+                "detection_method": r.get("primary_strategy", ""),
+                "confidence": decision["confidence"],
+                "timestamp": now_iso(),
+            })
         if result.get("failed") or result.get("error"):
             metrics["failures"] += 1
         if d == "unknown":
@@ -662,9 +712,38 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
         }
         decisions.append(entry)
 
+        # Save baseline (append-only)
+        new_baseline = bs.create_baseline(
+            spider=r["spider"],
+            url=r["resource_url"],
+            body_hash=result.get("body_hash") or str(result.get("status", "")),
+            fingerprint=result.get("normalized_fingerprint"),
+            etag=result.get("etag"),
+            last_modified=result.get("last_modified"),
+            feature_count=0,
+            status="success" if not result.get("failed") else "failed",
+        )
+        bs.save_baseline(out, new_baseline)
+        baselines.append(new_baseline)
+
         # Progress
         if len(decisions) % 10 == 0 or len(decisions) == len(registry):
             print(f"  Processed {len(decisions)}/{len(registry)}")
+
+    # Write monitoring changes (append-only)
+    if changes:
+        changes_path = out / "monitoring_changes.csv"
+        changes_cols = ["spider", "resource_url", "change_type", "baseline_id",
+                        "current_observation", "changed_fields", "baseline_value",
+                        "current_value", "detection_method", "confidence", "timestamp"]
+        write_header = not changes_path.exists()
+        with open(changes_path, "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=changes_cols, extrasaction="ignore")
+            if write_header:
+                w.writeheader()
+            for c in changes:
+                w.writerow(c)
+        print(f"  Recorded {len(changes)} changes to {changes_path}")
 
     # Write run record (append-only)
     run_record = {
