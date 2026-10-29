@@ -45,16 +45,11 @@ def extract_json_features(response_text, spider):
 
     features = []
     if isinstance(data, dict):
-        if "features" in data and isinstance(data["features"], list):
-            features = data["features"]
-        elif "stores" in data and isinstance(data["stores"], list):
-            features = data["stores"]
-        elif "data" in data and isinstance(data["data"], list):
-            features = data["data"]
-        elif "locations" in data and isinstance(data["locations"], list):
-            features = data["locations"]
-        elif "results" in data and isinstance(data["results"], list):
-            features = data["results"]
+        for key in ["features", "stores", "data", "locations", "results", "branches",
+                    "offices", "items", "records", "places", "points", "markers"]:
+            if key in data and isinstance(data[key], list):
+                features = data[key]
+                break
     elif isinstance(data, list):
         features = data
 
@@ -191,17 +186,42 @@ def extract_resource(resource, baseline=None, timeout=15, dry_run=False):
 
         # Extract features based on content type
         ct = (r.headers.get("Content-Type") or "").lower()
+        # Cautious JSON detection when Content-Type is missing or generic
+        if not ct or ct in ("text/plain", "application/octet-stream", ""):
+            try:
+                json.loads(r.text)
+                ct = "application/json"
+            except (json.JSONDecodeError, TypeError):
+                pass
         if "json" in ct:
             features, fp, method_name = extract_json_features(r.text, spider)
             result["extraction_method"] = method_name or "json_api"
-        elif "xml" in ct or url.endswith(".xml"):
-            urls, lastmods, fp = extract_sitemap_features(r.text)
-            result["extraction_method"] = "sitemap_crawl"
-            result["features_extracted"] = len(urls) if urls else 0
-            result["normalized_fingerprint"] = fp
-            if baseline and baseline.get("normalized_fingerprint"):
-                result["data_changed"] = (fp != baseline["normalized_fingerprint"])
-            result["status"] = "success"
+        elif "xml" in ct or url.endswith(".xml") or url.endswith(".php"):
+            # Check if standard sitemap or custom XML
+            if "<urlset" in r.text.lower() or "<sitemapindex" in r.text.lower():
+                urls, lastmods, fp = extract_sitemap_features(r.text)
+                result["extraction_method"] = "sitemap_crawl"
+                result["features_extracted"] = len(urls) if urls else 0
+                result["normalized_fingerprint"] = fp
+                if baseline and baseline.get("normalized_fingerprint"):
+                    result["data_changed"] = (fp != baseline["normalized_fingerprint"])
+                result["status"] = "success"
+                return result
+            else:
+                # Custom XML format (not standard sitemap)
+                result["extraction_method"] = "custom_xml"
+                result["status"] = "partial"
+                result["error"] = "Custom XML format; needs specialized parser"
+                return result
+        elif "csv" in ct or url.endswith(".csv"):
+            result["extraction_method"] = "csv"
+            result["status"] = "partial"
+            result["error"] = "CSV parsing not yet implemented"
+            return result
+        elif "javascript" in ct:
+            result["extraction_method"] = "javascript"
+            result["status"] = "partial"
+            result["error"] = "JavaScript bundle; needs browser rendering"
             return result
         elif "html" in ct:
             # Try JSON-LD extraction

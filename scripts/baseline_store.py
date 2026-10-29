@@ -194,7 +194,10 @@ def compute_fingerprint(features):
         if isinstance(geom, dict) and geom.get("type") == "Point":
             c = geom.get("coordinates")
             if isinstance(c, (list, tuple)) and len(c) >= 2:
-                coords = f"{c[0]:.6f},{c[1]:.6f}"
+                try:
+                    coords = f"{float(c[0]):.6f},{float(c[1]):.6f}"
+                except (ValueError, TypeError):
+                    coords = f"{c[0]},{c[1]}"
         tuples.append((fid, name, addr, coords))
     tuples.sort()
     content = json.dumps(tuples, sort_keys=True)

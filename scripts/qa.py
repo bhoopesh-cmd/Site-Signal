@@ -185,7 +185,7 @@ def main():
                 continue
             try:
                 ext = json.loads(line)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 continue
             # Run QA on extraction result metadata
             feature_count = ext.get("features_extracted", 0)
@@ -196,12 +196,34 @@ def main():
             qa["extraction_status"] = status
             # Override passed based on extraction status
             if status in ("success", "unchanged"):
+                data_quality_status = "passed"
                 qa["passed"] = True
                 qa["overall_score"] = 1.0
                 qa["issues"] = []
-            elif status in ("failed", "partial"):
+            elif status in ("failed",):
+                data_quality_status = "not_evaluated"
                 qa["passed"] = False
-                qa["issues"] = [f"Extraction status: {status}"]
+                qa["issues"] = [f"Extraction failed: {ext.get('error', 'unknown')}"]
+            elif status in ("partial",):
+                data_quality_status = "not_evaluated"
+                qa["passed"] = False
+                qa["issues"] = [f"Extraction incomplete: {ext.get('error', 'unknown')}"]
+            else:
+                data_quality_status = "not_evaluated"
+                qa["passed"] = False
+                qa["issues"] = [f"Unknown extraction status: {status}"]
+
+            # Baseline status
+            if status in ("success",):
+                baseline_status = "updated"
+            elif status in ("unchanged",):
+                baseline_status = "unchanged"
+            else:
+                baseline_status = "preserved"
+
+            qa["extraction_status"] = status
+            qa["data_quality_status"] = data_quality_status
+            qa["baseline_status"] = baseline_status
             results.append(qa)
         save_qa_results(out, results)
         print(f"QA completed for {len(results)} extractions")
