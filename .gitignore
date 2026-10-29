@@ -1,6 +1,8 @@
 # Large raw data (keep local only)
 data/seed/raw/
 data/seed/locations.geojson
+# Scratchpad
+scratchpad/
 # Python
 __pycache__/
 *.pyc
