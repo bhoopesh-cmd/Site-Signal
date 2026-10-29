@@ -1,1 +1,3 @@
 {"label": "baseline", "timestamp": "2026-10-29T19:26:50.012815+00:00", "resources_observed": 5, "successful": 4, "with_validators": 1, "errors": 1, "total_bytes": 5488675, "total_elapsed_ms": 25525}
+{"label": "observation2", "timestamp": "2026-10-29T19:41:51.214859+00:00", "resources_observed": 20, "successful": 19, "with_validators": 5, "errors": 0, "total_bytes": 10010719, "total_elapsed_ms": 35718}
+{"label": "observation3", "timestamp": "2026-10-29T19:42:13.596230+00:00", "resources_observed": 20, "successful": 19, "with_validators": 5, "errors": 0, "total_bytes": 10010719, "total_elapsed_ms": 25454}

@@ -76,5 +76,37 @@ Automated stratified sampling over qualifying spiders (errors==0, features>=5, n
 - 26 of 36 failed probes remain unresolved; many require auth/params not available.
 - Resolved probes point to alternate resources (HTML pages) in some cases, not the optimal API endpoints.
 
-## Failed/incomplete collections
-None (all 100 spiders produced valid GeoJSON).
+## Step 3: Signal Evaluation
+
+### Historical changes
+- Candidate changes: 40,939 (38,948 added, 1,802 removed, 189 modified)
+- Spiders with changes: 41
+- Historical spiders found: 91/100
+- ID stability: low (most IDs changed between runs)
+
+### Conditional requests
+- Resources tested: 117
+- ETag 304: 10, ETag 200: 12
+- Last-Modified 304: 6, Last-Modified 200: 11
+- Ignored condition (200 with identical body): 4
+- Validator reliability: unverified (single observation)
+
+### Live observation
+- Baseline: 5 resources observed
+- Observation 2: 20 resources observed
+- Observation 3: 20 resources observed
+- Total observations: 25 (append-only)
+- Signal comparison pairs: 24
+
+### Provider groups
+- Total groups: 98
+- Multi-spider groups: 1 (nandos/locationbank.net)
+- Webhooks verified: 0
+
+### Monitoring viability
+- Promising resources: 14 (verified location data + ETag)
+- Possible resources: 57 (verified location data, no ETag)
+- Unverified: 46 (no location data or inaccessible)
+
+### Recommendation
+Conditional HTTP: verified-subset-only. Live observation needed for validation.
