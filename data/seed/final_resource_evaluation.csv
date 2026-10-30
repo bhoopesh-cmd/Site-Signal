@@ -1,0 +1,14 @@
+metric,control,optimized,difference,pct_reduction
+resources_checked,117,117,0,0.0
+http_requests,106,117,-11,-10.4
+bytes_transferred,55274249,55274061,188,0.0
+elapsed_ms,274444,225337,49107,17.9
+extraction_jobs,117,0,117,100.0
+qa_jobs,117,0,117,100.0
+records_processed,23078,0,23078,100.0
+failures,39,37,2,0.0
+unknown_states,0,97,-97,0.0
+skips,0,20,-20,0.0
+audit_requests,0,20,-20,0.0
+audit_bytes,0,9936645,-9936645,0.0
+audit_elapsed_ms,0,38385,-38385,0.0

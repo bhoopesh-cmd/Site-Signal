@@ -1,0 +1,2 @@
+spider,resource_url,change_type,baseline_id,current_observation,changed_fields,baseline_value,current_value,detection_method,confidence,timestamp
+an_post_ie,https://www.anpost.com/Store-Locator,detected,38fb4391-316e-42fa-afe6-87fe589fc3e0,f9257ae1842419232b30d748fbb309b95e359d773920366126e5c01d8de30a4e,,f9c82cf27d07d006d2129ef39179cc2aaee087403606c6662d463e4e030b8255,f9257ae1842419232b30d748fbb309b95e359d773920366126e5c01d8de30a4e,B,medium,2026-10-30T09:39:38.989931+00:00

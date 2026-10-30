@@ -475,13 +475,17 @@ def execute_strategy(resource, timeout=15, baseline=None):
                                 result["body_changed"] = (new_hash != baseline["body_hash"])
                             # Try to extract location features
                             try:
-                                features, fp = bs.extract_location_features(cr.text, r["spider"])
+                                features, fp = bs.extract_location_features(cr.text, resource.get("spider", ""))
                                 if fp:
                                     result["normalized_fingerprint"] = fp
-                                    if baseline and baseline.get("normalized_fingerprint"):
-                                        result["data_changed"] = (fp != baseline["normalized_fingerprint"])
+                                else:
+                                    result["normalized_fingerprint"] = new_hash
+                                if baseline and baseline.get("normalized_fingerprint") and result.get("normalized_fingerprint"):
+                                    result["data_changed"] = (result["normalized_fingerprint"] != baseline["normalized_fingerprint"])
                             except Exception:
-                                pass
+                                result["normalized_fingerprint"] = new_hash
+                                if baseline and baseline.get("normalized_fingerprint"):
+                                    result["data_changed"] = (new_hash != baseline["normalized_fingerprint"])
                 except Exception as e:
                     result["error"] = str(e)
                     result["failed"] = True
@@ -506,13 +510,16 @@ def execute_strategy(resource, timeout=15, baseline=None):
             result["body_hash"] = hashlib.sha256(r.content).hexdigest() if r.content else None
             # Try to extract location features for fingerprint
             try:
-                features, fp = bs.extract_location_features(r.text, r.get("spider", ""))
+                features, fp = bs.extract_location_features(r.text, resource.get("spider", ""))
                 if fp:
                     result["normalized_fingerprint"] = fp
                     result["fingerprint_method"] = "extracted"
                 else:
+                    # Use body hash as proxy for non-JSON resources
+                    result["normalized_fingerprint"] = result["body_hash"]
                     result["fingerprint_method"] = "body_hash_proxy"
             except Exception:
+                result["normalized_fingerprint"] = result.get("body_hash")
                 result["fingerprint_method"] = "body_hash_proxy"
             # Check if baseline exists and differs
             if baseline and baseline.get("body_hash"):

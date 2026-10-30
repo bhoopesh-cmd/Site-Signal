@@ -1,8 +1,8 @@
 # Monitoring Report
 
-- Run ID: 23b9dfe1
-- Run timestamp: 2026-10-29T23:57:43.236852+00:00
-- Label: e2e
+- Run ID: b86777c1
+- Run timestamp: 2026-10-30T09:39:35.207866+00:00
+- Label: monitor
 - Dry run: True
 
 ## Metrics
@@ -10,19 +10,20 @@
 - Resources checked: 5
 - Requests issued: 5
 - Total bytes transferred: 5539637
-- Total elapsed: 6458ms
-- Confidently unchanged: 0
-- Potential changes: 0
-- Extraction jobs triggered: 0
-- QA jobs triggered: 0
+- Total elapsed: 3430ms
+- Confidently unchanged: 1
+- Potential changes: 1
+- Extraction jobs triggered: 1
+- QA jobs triggered: 1
 - Failures: 1
-- Unknown states: 3
-- Fallback executions: 3
+- Unknown states: 1
+- Fallback executions: 1
 
 ## Decisions
 
-- unknown: 3
-- would_skip: 2
+- unknown: 1
+- would_skip: 3
+- would_trigger_extraction: 1
 
 ## Strategy distribution
 
