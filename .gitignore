@@ -11,3 +11,5 @@ __pycache__/
 .DS_Store
 .commandcode/
 data/seed/raw_b/
+data/seed/raw_1010/
+data/seed/raw_b_1003/

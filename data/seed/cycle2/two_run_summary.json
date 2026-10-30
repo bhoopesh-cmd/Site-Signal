@@ -1,0 +1,40 @@
+{
+  "total_spiders": 93,
+  "comparable": 65,
+  "actual_changed": 22,
+  "actual_unchanged": 43,
+  "actual_inconclusive": 28,
+  "pred_skip": 1,
+  "pred_changed": 0,
+  "pred_unknown": 92,
+  "correct_skip": 0,
+  "missed_change": 1,
+  "correct_detection": 0,
+  "unnecessary_extraction": 0,
+  "fallback_required": 64,
+  "inconclusive": 28,
+  "skip_precision": 0.0,
+  "detection_precision": null,
+  "overall_accuracy": 0.0,
+  "fp_current": {
+    "correct_skip": 38,
+    "missed_change": 0,
+    "correct_detection": 22,
+    "unnecessary_extraction": 5,
+    "inconclusive": 28,
+    "skip_precision": 100.0,
+    "detection_precision": 81.5,
+    "overall_accuracy": 92.3
+  },
+  "fp_stable": {
+    "correct_skip": 42,
+    "missed_change": 0,
+    "correct_detection": 22,
+    "unnecessary_extraction": 1,
+    "inconclusive": 28,
+    "skip_precision": 100.0,
+    "detection_precision": 95.7,
+    "overall_accuracy": 98.5
+  },
+  "savings": {}
+}
