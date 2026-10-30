@@ -53,6 +53,16 @@ def run_optimized(out, registry, timeout=15, concurrency=4, max_resources=0):
         baseline = baselines_map.get((r["spider"], r["resource_url"]))
         decision = mon.route(r, result)
 
+        # Use actual request count from execute_strategy
+        requests_issued = result.get("requests_issued", 1)
+        if not (r["resource_url"].startswith("http://") or r["resource_url"].startswith("https://")):
+            requests_issued = 0
+
+        # For 304 skips, bytes should be 0 (no body downloaded)
+        bytes_t = result.get("bytes_transferred", 0)
+        if result.get("cond_status") == 304 or result.get("status") == 304:
+            bytes_t = 0
+
         entry = {
             "run_id": run_id,
             "run_timestamp": run_ts,
@@ -60,8 +70,8 @@ def run_optimized(out, registry, timeout=15, concurrency=4, max_resources=0):
             "resource_url": cs.redact_url(r["resource_url"]),
             "strategy": r.get("primary_strategy", "E"),
             "decision": decision["decision"],
-            "requests_issued": 1,
-            "bytes_transferred": result.get("bytes_transferred", 0),
+            "requests_issued": requests_issued,
+            "bytes_transferred": bytes_t,
             "elapsed_ms": result.get("elapsed_ms", 0),
             "validator_type": r.get("validator_type", "none"),
             "conditional_status": result.get("cond_status"),
@@ -212,7 +222,9 @@ def audit_skips(out, optimized_results):
 
 def measure_savings(out, control_results, optimized_results, audit_results):
     """Measure actual savings comparing control vs optimized."""
-    # Aggregate control metrics
+    # Count actual extraction/QA jobs from control (not all resources)
+    control_extraction_jobs = sum(1 for r in control_results if r.get("extraction_method", "none") != "none")
+    control_qa_jobs = sum(1 for r in control_results if r.get("extraction_method", "none") != "none" and r.get("extraction_method") in ("json_api", "sitemap_crawl", "csv"))
     control_requests = sum(r.get("requests_issued", 0) for r in control_results)
     control_bytes = sum(r.get("bytes_transferred", 0) for r in control_results)
     control_elapsed = sum(r.get("elapsed_ms", 0) for r in control_results)
@@ -248,8 +260,8 @@ def measure_savings(out, control_results, optimized_results, audit_results):
         {"metric": "http_requests", "control": control_requests, "optimized": opt_requests, "difference": control_requests - opt_requests, "pct_reduction": pct_reduction(control_requests, opt_requests)},
         {"metric": "bytes_transferred", "control": control_bytes, "optimized": opt_bytes, "difference": control_bytes - opt_bytes, "pct_reduction": pct_reduction(control_bytes, opt_bytes)},
         {"metric": "elapsed_ms", "control": control_elapsed, "optimized": opt_elapsed, "difference": control_elapsed - opt_elapsed, "pct_reduction": pct_reduction(control_elapsed, opt_elapsed)},
-        {"metric": "extraction_jobs", "control": len(control_results), "optimized": opt_extractions, "difference": len(control_results) - opt_extractions, "pct_reduction": pct_reduction(len(control_results), opt_extractions)},
-        {"metric": "qa_jobs", "control": len(control_results), "optimized": opt_qa, "difference": len(control_results) - opt_qa, "pct_reduction": pct_reduction(len(control_results), opt_qa)},
+        {"metric": "extraction_jobs", "control": control_extraction_jobs, "optimized": opt_extractions, "difference": control_extraction_jobs - opt_extractions, "pct_reduction": pct_reduction(control_extraction_jobs, opt_extractions)},
+        {"metric": "qa_jobs", "control": control_qa_jobs, "optimized": opt_qa, "difference": control_qa_jobs - opt_qa, "pct_reduction": pct_reduction(control_qa_jobs, opt_qa)},
         {"metric": "records_processed", "control": control_features, "optimized": 0, "difference": control_features, "pct_reduction": 100.0 if control_features > 0 else 0.0},
         {"metric": "failures", "control": control_failed, "optimized": opt_failures, "difference": control_failed - opt_failures, "pct_reduction": 0.0},
         {"metric": "unknown_states", "control": 0, "optimized": opt_unknown, "difference": -opt_unknown, "pct_reduction": 0.0},
@@ -270,12 +282,12 @@ def measure_savings(out, control_results, optimized_results, audit_results):
     print(f"  Cohort: {len(control_results)} resources")
     print(f"  Control requests: {control_requests}, bytes: {control_bytes}, elapsed: {control_elapsed}ms")
     print(f"  Optimized requests: {opt_requests}, bytes: {opt_bytes}, elapsed: {opt_elapsed}ms")
-    print(f"  Extraction jobs: control={len(control_results)}, optimized={opt_extractions}")
-    print(f"  QA jobs: control={len(control_results)}, optimized={opt_qa}")
+    print(f"  Extraction jobs: control={control_extraction_jobs}, optimized={opt_extractions}")
+    print(f"  QA jobs: control={control_qa_jobs}, optimized={opt_qa}")
     print(f"  Skips: {opt_skips}, Failures: {opt_failures}, Unknown: {opt_unknown}")
     print(f"  Audit (validation overhead): requests={audit_requests}, bytes={audit_bytes}, elapsed={audit_elapsed}ms")
     print(f"\n  Network savings: {control_requests - opt_requests} requests ({pct_reduction(control_requests, opt_requests)}%)")
-    print(f"  Processing savings: {len(control_results) - opt_extractions} extraction jobs ({pct_reduction(len(control_results), opt_extractions)}%)")
+    print(f"  Processing savings: {control_extraction_jobs - opt_extractions} extraction jobs ({pct_reduction(control_extraction_jobs, opt_extractions)}%)")
 
     return rows
 

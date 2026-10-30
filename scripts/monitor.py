@@ -341,18 +341,26 @@ def route(resource, result):
 
     if strategy == "C":
         # Alternative metadata/feed
-        if result.get("metadata_changed", False):
+        md_changed = result.get("metadata_changed")
+        if md_changed is True:
             return {
                 "decision": "trigger_extraction",
                 "justification": "Metadata/feed change detected",
                 "confidence": "low",
                 "fallback_executed": False,
             }
+        if md_changed is False:
+            return {
+                "decision": "skip",
+                "justification": "No metadata/feed change detected",
+                "confidence": "low",
+                "fallback_executed": False,
+            }
         return {
-            "decision": "skip",
-            "justification": "No metadata/feed change detected",
+            "decision": "unknown",
+            "justification": "Metadata check inconclusive or failed",
             "confidence": "low",
-            "fallback_executed": False,
+            "fallback_executed": True,
         }
 
     if strategy == "D":
@@ -395,6 +403,7 @@ def execute_strategy(resource, timeout=15, baseline=None):
         "elapsed_ms": 0,
         "metadata_changed": False,
         "validator_changed": False,
+        "requests_issued": 1,
     }
 
     t0 = time.time()
@@ -446,12 +455,13 @@ def execute_strategy(resource, timeout=15, baseline=None):
 
         # Strategy A: Conditional request
         if strategy == "A":
-            etag = resource.get("http_etag", "") or r.headers.get("ETag", "")
-            lm = resource.get("http_last_modified", "") or r.headers.get("Last-Modified", "")
+            etag = resource.get("etag", "") or r.headers.get("ETag", "")
+            lm = resource.get("last_modified", "") or r.headers.get("Last-Modified", "")
             if etag:
                 cond_headers = {"User-Agent": USER_AGENT, "If-None-Match": etag}
                 t1 = time.time()
                 try:
+                    result["requests_issued"] += 1  # conditional request
                     cr = requests.get(url, timeout=timeout, headers=cond_headers, allow_redirects=True)
                     result["cond_status"] = cr.status_code
                     result["cond_elapsed_ms"] = int((time.time() - t1) * 1000)
@@ -493,6 +503,7 @@ def execute_strategy(resource, timeout=15, baseline=None):
                 cond_headers = {"User-Agent": USER_AGENT, "If-Modified-Since": lm}
                 t1 = time.time()
                 try:
+                    result["requests_issued"] += 1  # conditional request
                     cr = requests.get(url, timeout=timeout, headers=cond_headers, allow_redirects=True)
                     result["cond_status"] = cr.status_code
                     result["cond_elapsed_ms"] = int((time.time() - t1) * 1000)
@@ -703,7 +714,7 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
 
         # Execute strategy
         result = execute_strategy(r, timeout=timeout, baseline=baseline)
-        metrics["requests_issued"] += 1
+        metrics["requests_issued"] += result.get("requests_issued", 1)
         metrics["total_bytes"] += result.get("bytes_transferred", 0)
         metrics["total_elapsed_ms"] += result.get("elapsed_ms", 0)
 
@@ -777,7 +788,7 @@ def run_monitoring_cycle(registry, out, dry_run=True, timeout=15, label="monitor
         decisions.append(entry)
 
         # Save baseline (append-only) — only if eligible
-        eligible, reason = bs.is_baseline_eligible(result)
+        eligible, reason = bs.is_baseline_eligible(result, has_existing_baseline=baseline is not None)
         if eligible:
             new_baseline = bs.create_baseline(
                 spider=r["spider"],
