@@ -1,0 +1,49 @@
+{
+  "total_spiders": 100,
+  "comparable": 90,
+  "actual_changed": 23,
+  "actual_unchanged": 67,
+  "actual_inconclusive": 10,
+  "pred_skip": 1,
+  "pred_changed": 0,
+  "pred_unknown": 99,
+  "correct_skip": 0,
+  "missed_change": 1,
+  "correct_detection": 0,
+  "unnecessary_extraction": 0,
+  "fallback_required": 89,
+  "inconclusive": 10,
+  "skip_precision": 0.0,
+  "detection_precision": null,
+  "overall_accuracy": 0.0,
+  "fp_current": {
+    "correct_skip": 64,
+    "missed_change": 0,
+    "correct_detection": 23,
+    "unnecessary_extraction": 3,
+    "inconclusive": 10,
+    "skip_precision": 100.0,
+    "detection_precision": 88.5,
+    "overall_accuracy": 96.7
+  },
+  "fp_stable": {
+    "correct_skip": 67,
+    "missed_change": 0,
+    "correct_detection": 23,
+    "unnecessary_extraction": 0,
+    "inconclusive": 10,
+    "skip_precision": 100.0,
+    "detection_precision": 100.0,
+    "overall_accuracy": 100.0
+  },
+  "savings": {
+    "monitored_resources_covered": 102,
+    "unchanged_resources": 67,
+    "changed_resources": 35,
+    "extraction_jobs_avoidable": 67,
+    "qa_jobs_avoidable": 67,
+    "processing_savings_pct": 65.7,
+    "network_savings_pct": 0.0,
+    "note": "Strategy B downloads full payload; no bandwidth saving. Processing saving assumes a trustworthy cheap signal (conditional HTTP / body hash) precedes extraction."
+  }
+}
