@@ -34,6 +34,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import extract as ex
 import validate_two_runs as v2
 
+import collect_seed as cs
+
 UA = "ChainXY-seed-collector/1.0 (+research)"
 DATA_BASE = "https://alltheplaces-data.openaddresses.io/runs"
 COVERAGE_THRESHOLD = 0.7
@@ -128,7 +130,7 @@ def phase_baseline(cohort, data_b_dir, run_b, outdir):
             "run_b": run_b,
             "extraction_end": "2026-10-25T04:28:58Z",
             "source_file": f"{run_b}/{spider}.geojson",
-            "source_uri": src,
+            "source_uri": cs.redact_url(src) if src else src,
             "feature_count": len(feats),
             "stable_fingerprint": fp,
             "baseline_frozen_at": now_iso(),

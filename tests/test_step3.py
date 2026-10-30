@@ -1,9 +1,32 @@
 import sys
+from functools import lru_cache
 from pathlib import Path
+
+import pytest
+import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import collect_seed as cs
 import evaluate_signals as ev
+
+ARCHIVE_URL = "https://alltheplaces-data.openaddresses.io/runs/2026-10-10-13-32-41/output.zip"
+
+
+@lru_cache(maxsize=1)
+def _require_archive():
+    """Return the remote archive URL, or skip if the external host is unreachable.
+
+    These tests exercise real HTTP range requests against a third-party archive.
+    When that host is slow or unavailable (common on shared CI runners), skip
+    rather than fail so the suite reflects our code, not their uptime.
+    """
+    try:
+        r = requests.get(ARCHIVE_URL, headers={"Range": "bytes=-1024"}, timeout=20)
+    except requests.RequestException as e:
+        pytest.skip(f"archive host unreachable: {e}")
+    if r.status_code not in (200, 206):
+        pytest.skip(f"archive host returned HTTP {r.status_code}")
+    return ARCHIVE_URL
 
 
 def test_redact_url():
@@ -24,21 +47,30 @@ def test_classify_resource_type():
 
 
 def test_extract_zip_entry_decompresses():
-    # Test with a real zip entry from previous run
-    url = "https://alltheplaces-data.openaddresses.io/runs/2026-10-10-13-32-41/output.zip"
-    entry = ev.find_zip_entry(url, "aed_locations_nz")
+    # Test with a real zip entry from a previous run (skips if host unreachable)
+    url = _require_archive()
+    try:
+        entry = ev.find_zip_entry(url, "aed_locations_nz")
+    except requests.RequestException as e:
+        pytest.skip(f"archive host error: {e}")
     assert entry is not None
     name, lo, cs_sz, us_sz, method = entry
     assert name.endswith(".geojson")
-    geo = ev.extract_zip_entry(url, name, lo, cs_sz, us_sz, method)
+    try:
+        geo = ev.extract_zip_entry(url, name, lo, cs_sz, us_sz, method)
+    except requests.RequestException as e:
+        pytest.skip(f"archive host error: {e}")
     assert geo is not None
     assert geo.get("type") == "FeatureCollection"
     assert len(geo.get("features", [])) > 0
 
 
 def test_find_zip_entry_not_found():
-    url = "https://alltheplaces-data.openaddresses.io/runs/2026-10-10-13-32-41/output.zip"
-    entry = ev.find_zip_entry(url, "nonexistent_spider_xyz")
+    url = _require_archive()
+    try:
+        entry = ev.find_zip_entry(url, "nonexistent_spider_xyz")
+    except requests.RequestException as e:
+        pytest.skip(f"archive host error: {e}")
     assert entry is None
 
 
