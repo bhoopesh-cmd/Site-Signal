@@ -77,7 +77,7 @@ def run_end_to_end(out, dry_run=True, timeout=15, concurrency=4, max_resources=0
     print("\n=== Phase 2: Selective Extraction + QA ===")
     extractable = []
     for d in decisions:
-        if d["decision"] in ("trigger_extraction", "would_trigger_extraction"):
+        if d["decision"] in ("trigger_extraction", "would_trigger_extraction", "unknown"):
             # Find the resource in registry
             res = next((r for r in registry if r["spider"] == d["spider"] and r["resource_url"] == d["resource_url"]), None)
             if res:

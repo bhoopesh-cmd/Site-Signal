@@ -1,8 +1,3 @@
 spider,resource_url,strategy,decision,completeness,baseline_fingerprint,current_fingerprint,classification,requests,bytes,elapsed_ms,error
-blinds_to_go,https://www.blindstogo.com/sitemap.xml,C,skip,partial,,,inconclusive,1,1842,457,
-carls_jr_us,https://locations.carlsjr.com/sitemap_index.xml,C,skip,partial,,,inconclusive,1,246,72,
-dominos_pizza_pk,https://www.dominos.com.pk/api/customer/stores,A,skip,partial,,,inconclusive,1,26305,349,
-hotel_bb,https://www.hotel-bb.com/sitemap.xml,C,skip,partial,,,inconclusive,1,1194,408,
-howard_county_public_library_md_us,https://www.hclibrary.org/sitemap_index.xml,C,skip,partial,,,inconclusive,1,2915,743,
-my_eye_dr,https://locations.myeyedr.com/sitemap1.xml,C,skip,partial,,,inconclusive,1,371867,270,
-papa_johns_cr,https://www.papajohns.cr/locales/,A,skip,partial,,,inconclusive,1,115613,1443,
+dominos_pizza_pk,https://www.dominos.com.pk/api/customer/stores,A,skip,partial,,,inconclusive,1,26305,858,
+papa_johns_cr,https://www.papajohns.cr/locales/,A,skip,partial,,,inconclusive,1,115613,146,

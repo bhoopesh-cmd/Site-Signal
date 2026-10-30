@@ -82,7 +82,8 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 - **Conditional requests used fresh response ETag, not stored baseline ETag** (tautological — fixed)
 - **304 treated as proof of unchanged location data** (only validator equality — still present, acknowledged as unverified)
 - **Reconciliation was broken** (no baselines loaded, strategy not switched — partially fixed)
-- **Strategy C defaulted unknown to skip** (fixed)
+- **Strategy C false-skip** (fixed: route now uses body/data comparison; no longer always skips)
+- **Unknown resources now dispatch extraction** (fixed: end-to-end and benchmark count unknowns as extraction-triggered)
 - **Resource identity ignores URL normalization, HTTP method, POST body** (resource_identity defined but unused)
 - **POST endpoints probed with empty body** (not fixed — requires request body capture)
 - **Tokenized URLs requested redacted** (not fixed — requires URL de-redaction)
@@ -92,7 +93,7 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 - **requests_issued was hard-coded to 1** (overcounted optimized — fixed)
 - **bytes_transferred inflated for 304 skips** (fixed)
 - **extraction_jobs/qa_jobs baselines inflated** (117 vs actual 80/19 — fixed)
-- **All 20 skips inconclusive** (no baseline fingerprints — reduced to 8 after fixes)
+- **All skips inconclusive** (no verified skips — 7 after latest run)
 - **Audit uses only extract_json_features** (can't check sitemaps)
 - **Unsupported claims in final_evaluation.md** (corrected)
 - **Network savings invalid** (optimized uses more requests)
@@ -123,8 +124,8 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 - Total bytes: 54.8MB
 - Total elapsed: 183s
 - Failures: 37 (HTTP errors, DNS, auth)
-- Unknown states: 109 (no baseline or failed request)
-- Skips: 8 (conditional 304 or identical body)
+- Unknown states: 110 (no baseline or failed request)
+- Skips: 7 (conditional 304 or identical body)
 
 ### Extraction results
 - 80 extraction attempts (79 successful + 1 failed)
@@ -155,14 +156,14 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 - Requests: 133 (107 initial + 26 conditional)
 - Bytes: 54.8MB
 - Elapsed: 183s
-- Decisions: 8 skip, 109 unknown
-- Extractions triggered: 0
-- QA triggered: 0
+- Decisions: 7 skip, 110 unknown
+- Extractions triggered: unknowns now dispatched (110) per corrected benchmark policy
+- QA triggered: unknowns now dispatched (110)
 - Failures: 37
-- Unknown: 109
+- Unknown: 110
 
-### Skip audit (8 skips)
-- All 8 classified as "inconclusive" (extraction was partial/failed)
+### Skip audit (7 skips)
+- All 7 classified as "inconclusive" (extraction was partial/failed)
 - 0 false skips detected
 - 0 verified skips (no complete extraction for comparison)
 - Audit cost: 8 requests, 876KB, 4s

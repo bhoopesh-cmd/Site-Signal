@@ -402,23 +402,27 @@ def route(resource, result):
 
     if strategy == "C":
         md_changed = result.get("metadata_changed")
-        if md_changed is True:
+        body_changed = result.get("body_changed")
+        data_changed = result.get("data_changed")
+        # Trigger if any signal indicates a change (avoid false skips)
+        if md_changed is True or body_changed is True or data_changed is True:
             return {
                 "decision": "trigger_extraction",
-                "justification": "Metadata/feed change detected",
+                "justification": "Metadata/feed or payload change detected",
                 "confidence": "low",
                 "fallback_executed": False,
             }
-        if md_changed is False:
+        # Skip only when all signals agree there is no change
+        if md_changed is False and body_changed is False and data_changed is False:
             return {
                 "decision": "skip",
-                "justification": "No metadata/feed change detected",
+                "justification": "No metadata/feed or payload change detected",
                 "confidence": "low",
                 "fallback_executed": False,
             }
         return {
             "decision": "unknown",
-            "justification": "Metadata check inconclusive or failed",
+            "justification": "Metadata/payload check inconclusive or failed",
             "confidence": "low",
             "fallback_executed": True,
         }
@@ -680,11 +684,12 @@ def reconcile(registry, timeout=15):
     decisions = []
     for r in registry:
         baseline = bs.get_latest_baseline(baselines, r["spider"], r["resource_url"])
-        # Always compare payload (treat as Strategy B)
-        result = execute_strategy(r, timeout=timeout, baseline=baseline)
-        # Force strategy to B for reconciliation
+        # Force Strategy B semantics for an independent payload comparison
+        r_b = dict(r)
+        r_b["primary_strategy"] = "B"
+        result = execute_strategy(r_b, timeout=timeout, baseline=baseline)
         result["strategy"] = "reconciliation"
-        decision = route(r, result)
+        decision = route(r_b, result)
         decisions.append({
             "spider": r["spider"],
             "resource_url": redact_url(r["resource_url"]),
