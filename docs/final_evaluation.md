@@ -140,7 +140,7 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 **Conditional HTTP should be used as a verified-subset-only strategy, not as a general fallback.**
 
 - Only 14 of 117 resources (12%) are "promising" (verified location data + ETag present)
-- 85 of 117 (72.6%) have no usable validator → require direct payload comparison
+- 97 of 117 (82.9%) have no usable validator → require direct payload comparison
 - 4 resources ignore conditional headers → cannot rely on 304 alone
 - 4 resources need browser rendering → Strategy D
 - 32 resources are unresolved → Strategy E

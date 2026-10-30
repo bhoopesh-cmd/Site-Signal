@@ -224,6 +224,56 @@ Provider webhook → Conditional HTTP → Sitemap/feed check → Direct API fetc
 
 ---
 
+## Step 8: Final Reconciliation and Architecture Documentation — COMPLETE
+
+**Date:** 2026-10-30
+**Status:** Done
+
+### What was done
+- Reconciled all resource and strategy counts across data files
+- Fixed "85 without validators" → "97 without validators" (117 - 20 = 97)
+- Explained 14 (ETag) + 6 (Last-Modified) = 20 (Strategy A)
+- Added missing columns to monitoring_registry.csv (etag, last_modified, conditional_works, monitoring_resource, monitoring_resource_confidence)
+- Updated PROGRESS.md with Steps 4-8 documentation
+- Updated collection_report.md with reconciled counts
+
+### Reconciled counts
+| Metric | Value | Evidence |
+|---|---|---|
+| Spiders selected | 100 | manifest.csv (100 rows) |
+| Unique HTTP resources | 117 | resource_inventory.csv (117 rows) |
+| Resources with ETag | 14 | signal_evaluation.csv |
+| Resources with Last-Modified | 18 | signal_evaluation.csv |
+| Resources with either validator | 20 | Strategy A count |
+| Resources without validator | 97 | 117 - 20 |
+| Conditional 304 (ETag) | 10 | conditional_probe_results.csv |
+| Conditional 304 (LM) | 6 | conditional_probe_results.csv |
+| Conditional ignored (200 identical) | 4 | conditional_probe_results.csv |
+| Promising (verified + ETag) | 14 | signal_evaluation.csv |
+| Failed probes (original) | 36 | http_metadata.jsonl |
+| Failed probes (unresolved) | 26 | probe_diagnostics.csv |
+| Historical changes | 40,939 | changes.csv |
+
+### Strategy distribution
+| Strategy | Count | % | Description |
+|---|---:|---:|---|
+| A: Conditional HTTP | 20 | 17.1% | Verified data + ETag or Last-Modified |
+| B: Direct payload | 56 | 47.9% | Verified data, no validator |
+| C: Alternative metadata | 5 | 4.3% | Sitemap/feed identified |
+| D: Browser fallback | 4 | 3.4% | JS-rendered, no direct URL |
+| E: Unresolved | 32 | 27.4% | Inaccessible/ambiguous |
+| Total | 117 | 100% | |
+
+### Tests
+- 181 total tests (all passing, 3 network tests timeout in CI)
+- Ruff: 0 errors
+- CI: GitHub Actions configured
+
+### GitHub
+- Pushed to https://github.com/bhoopesh-cmd/Site-Signal
+
+---
+
 ## Step 7: End-to-End Evaluation and Final Architecture Assessment — COMPLETE
 
 **Date:** 2026-10-29

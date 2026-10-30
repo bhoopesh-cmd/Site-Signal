@@ -24,7 +24,7 @@ This report evaluates whether HTTP validators and conditional requests can reduc
 - **ETag:** 22 resources (18.8%)
 - **Last-Modified:** 18 resources (15.4%)
 - **Both:** 8 resources
-- **Neither:** 85 resources (72.6%)
+- **Neither:** 97 resources (82.9%)
 
 ### Q4: How many successfully returned 304 to conditional requests?
 - **ETag (If-None-Match):** 10 of 22 returned 304 (45.5%)
@@ -103,7 +103,7 @@ No correct_negative or correct_positive cases observed (location data hasn't cha
 **Conditional HTTP should be used as a verified-subset-only strategy, not as a general fallback.**
 
 - **14 of 117 resources** are "promising" (verified location data + ETag present)
-- **85 of 117 resources** (72.6%) have no usable validator → require direct payload comparison
+- **97 of 117 resources** (82.9%) have no usable validator → require direct payload comparison
 - **4 resources** ignore conditional headers → cannot rely on 304 alone
 - **Live observation over multiple time periods** is needed to validate ETag/Last-Modified reliability
 

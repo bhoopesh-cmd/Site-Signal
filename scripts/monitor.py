@@ -190,6 +190,9 @@ def build_registry(out):
             "unresolved_limitations": limitations,
             "feature_count": m.get("feature_count", ""),
             "probe_status": r.get("probe_status", ""),
+            "conditional_works": cond.get("conditional_works", ""),
+            "monitoring_resource": r.get("original_url", ""),
+            "monitoring_resource_confidence": m.get("source_mapping_confidence", ""),
         })
 
     # Sort by spider then url
