@@ -31,8 +31,74 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 - 97 resources (82.9%) have no usable validator
 - 4 resources ignore conditional headers (subset of Strategy A, not additional)
 - 4 resources need browser rendering (Strategy D)
+- 15 resources have templated URLs (unmonitorable without parameter resolution)
+- 4 resources have invalid URLs (XPath fragments, plain text)
+- 7 resources have redirect/construction issues
+- 9 resources use pagination parameters
+- 30 spiders have multiple endpoints (38 extra resources)
 
-## 3. Deterministic Scenario Results
+## 3. Data Integrity Audit
+
+### Agent A: Historical Baseline and Provenance
+- **114,229 features** (verified via manifest sum, matches collection_report.md)
+- **100 spiders** in manifest, **125 http_metadata entries** (115 initial + 10 retry duplicates)
+- **40,939 candidate changes**: 38,948 "added" (likely ID renames), 1,802 "removed", 189 "modified"
+- **26 unresolved probes** (auth/params/DNS/server)
+- **20 low-confidence source mappings**
+- **100 raw GeoJSON files** (gitignored, 111MB)
+- **Collection timestamp**: 2026-10-28T20:50:14.686510+00:00
+- **AllThePlaces run ID**: 2026-10-17-13-32-31
+
+### Agent B: Website and Spider Mapping
+- **117 resources**, **79 unique spiders** across ~45 countries
+- **15 templated URLs** cannot be monitored without parameter resolution
+- **4 invalid URLs** (XPath fragments, plain text)
+- **7 redirect/construction issues**
+- **9 pagination parameters** need handling
+- **13 working conditional requests** (304): aland_post_ax (2), burger_king_bd, bpb_xk, casa_do_pao_de_queijo_br, dominos_pizza_pk, ethiopost_et, or_en_cash_fr, papa_johns_cr (2), jordan_post_jo (2), carls_jr_us
+- **14 promising, 57 possible, 46 unverified** for monitoring viability
+
+### Agent C: Extraction Quality
+- **19 success, 50 partial, 2 failed, 10 unchanged** (81 total)
+- **18 raw GeoJSON files contain null-geometry features** (no coordinates)
+- **Significant truncation**: dm (50%), belpost_by (99.8%), carls_jr_us (99.9%), hotel_bb (99.6%), blinds_to_go (62%)
+- **Sitemap counts URLs not features** — inconsistent with manifest
+- **QA scoring inconsistent**: feature_count check always failed but 29 marked passed
+- **Baselines feature_count all 0** (bug)
+- **Hash-based fallback IDs non-deterministic** across runs
+- **2 HTTP failures**: bq (503), hm (403)
+
+### Agent D: Normalization and Change Detection
+- **Fingerprints include unstable IDs** → false changes when IDs change
+- **Limited field recognition**: only addr:street_address or addr:full recognized; other schemas yield empty addresses
+- **Duplicates not deduplicated** in fingerprints
+- **Coordinate precision**: 6-decimal rounding misses tiny shifts
+- **is_baseline_eligible never passes has_existing_baseline** (bug — fixed)
+- **Strategy A conditional check is no-op** (bug — fixed)
+- **304 handling can be inconsistent** (baseline hash reuse)
+- **Weak ETags treated as usable validators** (acceptable but unverified)
+
+### Agent E: Architecture and Signal Correctness
+- **Conditional requests used fresh response ETag, not stored baseline ETag** (tautological — fixed)
+- **304 treated as proof of unchanged location data** (only validator equality — still present, acknowledged as unverified)
+- **Reconciliation was broken** (no baselines loaded, strategy not switched — partially fixed)
+- **Strategy C defaulted unknown to skip** (fixed)
+- **Resource identity ignores URL normalization, HTTP method, POST body** (resource_identity defined but unused)
+- **POST endpoints probed with empty body** (not fixed — requires request body capture)
+- **Tokenized URLs requested redacted** (not fixed — requires URL de-redaction)
+- **Weak ETags correctly retained** (design decision)
+
+### Agent F: Benchmark Methodology
+- **requests_issued was hard-coded to 1** (overcounted optimized — fixed)
+- **bytes_transferred inflated for 304 skips** (fixed)
+- **extraction_jobs/qa_jobs baselines inflated** (117 vs actual 80/19 — fixed)
+- **All 20 skips inconclusive** (no baseline fingerprints — reduced to 8 after fixes)
+- **Audit uses only extract_json_features** (can't check sitemaps)
+- **Unsupported claims in final_evaluation.md** (corrected)
+- **Network savings invalid** (optimized uses more requests)
+- **Processing savings artifact of unchanged data**
+
+## 4. Deterministic Scenario Results
 
 11 end-to-end tests, all passing:
 
@@ -50,132 +116,100 @@ This report evaluates the complete site-signal prototype for ChainXY's location-
 | Baseline chain | prev_baseline_id tracked | ✅ Pass |
 | Monitoring report generated | report exists | ✅ Pass |
 
-## 4. Live Evaluation Results
+## 5. Live Evaluation Results
 
 ### Monitoring cycle (117 resources)
-- Requests issued: 117
-- Total bytes: 55MB
-- Total elapsed: 225s
+- Requests issued: 133 (107 initial + 26 conditional for Strategy A)
+- Total bytes: 54.8MB
+- Total elapsed: 183s
 - Failures: 37 (HTTP errors, DNS, auth)
-- Unknown states: 97 (no baseline or failed request)
-- Skips: 20 (conditional 304 or identical body)
+- Unknown states: 109 (no baseline or failed request)
+- Skips: 8 (conditional 304 or identical body)
 
 ### Extraction results
-- 19 success (JSON API extraction)
-- 10 unchanged (304 conditional)
-- 50 partial (HTML without structured data, unsupported content types)
-- 2 failed (server errors: bq 503, hm 403)
-- 23,077 features extracted
+- 80 extraction attempts (79 successful + 1 failed)
+- 19 QA calls (json_api + sitemap_crawl)
+- 23,078 features extracted (dominated by aed_locations_nz = 18,115)
 
 ### QA results
-- 29 passed (success/unchanged extractions)
-- 52 not_evaluated (partial/failed — extraction incomplete, not data quality issues)
+- 6 QA passed (json_api extractions)
 - 0 genuine data-quality failures
 
 ### Conditional requests
-- ETag 304: 10, ETag 200: 12
-- Last-Modified 304: 6, Last-Modified 200: 11
-- Ignored condition (200 with identical body): 4
+- Strategy A: 20 resources, 26 conditional requests (some have 2 endpoints)
+- 8 returned 304, 12 returned 200
+- 4 returned 200 with identical body (ignored conditional headers)
 
-## 5. Comparison with Conventional Scraping
-
-**No conventional scraper exists in the repository.** The control uses Site-Signal's own extraction code (unconditional fetch + extract + QA). This is not an independent baseline — it's the same extraction logic without monitoring optimizations.
+## 6. Comparison with Conventional Scraping
 
 ### Control run (117 resources)
-- Requests: 106 (11 failed to connect)
-- Bytes: 55.3MB
-- Elapsed: 274s
-- Complete: 17, Partial: 61, Failed: 39
+- Requests: 107 (10 failed to connect)
+- Bytes: 54.7MB
+- Elapsed: 186s
+- Extraction attempts: 80 (79 successful + 1 failed)
+- QA calls: 19
 - Features extracted: 23,078
 - QA passed: 6
 
 ### Optimized run (117 resources)
-- Requests: 117
-- Bytes: 55.3MB
-- Elapsed: 225s
-- Decisions: 20 skip, 97 unknown
+- Requests: 133 (107 initial + 26 conditional)
+- Bytes: 54.8MB
+- Elapsed: 183s
+- Decisions: 8 skip, 109 unknown
 - Extractions triggered: 0
 - QA triggered: 0
 - Failures: 37
-- Unknown: 97
+- Unknown: 109
 
-### Skip audit (20 skips)
-- All 20 classified as "inconclusive" (extraction was partial/failed)
+### Skip audit (8 skips)
+- All 8 classified as "inconclusive" (extraction was partial/failed)
 - 0 false skips detected
 - 0 verified skips (no complete extraction for comparison)
-- Audit cost: 20 requests, 9.9MB, 38s
+- Audit cost: 8 requests, 876KB, 4s
 
 ### Savings analysis
 | Metric | Control | Optimized | Difference | % Reduction |
 |---|---:|---:|---:|---:|
-| HTTP requests | 106 | 117 | -11 | -10.4% |
-| Bytes transferred | 55.3MB | 55.3MB | 188B | 0.0% |
-| Elapsed time | 274s | 225s | 49s | 17.9% |
-| Extraction jobs | 117 | 0 | 117 | 100.0% |
-| QA jobs | 117 | 0 | 117 | 100.0% |
+| HTTP requests | 107 | 133 | -26 | -24.3% |
+| Bytes transferred | 54.7MB | 54.8MB | +87KB | +0.2% |
+| Elapsed time | 186s | 183s | 3s | 1.6% |
+| Extraction jobs | 80 | 0 | 80 | 100.0% |
+| QA jobs | 19 | 0 | 19 | 100.0% |
 | Records processed | 23,078 | 0 | 23,078 | 100.0% |
 
 **Interpretation:**
-- **Network savings: NEGATIVE** — optimized uses more requests (conditional + unconditional) and same bytes
-- **Processing savings: 100%** — no extractions/QA triggered (because no changes detected)
-- **But this is misleading** — 0 extractions triggered because data hasn't changed, not because monitoring is efficient
-- **Audit overhead: 20 requests, 9.9MB, 38s** — significant validation cost
+- **Network savings: NEGATIVE** — optimized uses 26 more requests (conditional checks add overhead)
+- **Processing savings: 100%** — but this is an artifact of unchanged data (no changes detected in a single observation window)
+- **Audit overhead: 8 requests, 876KB, 4s** — validation cost, not operating cost
 
 ### Honest assessment
-The optimized pipeline's "100% processing savings" is an artifact of unchanged data, not evidence of efficiency. In a real deployment with actual changes, extraction would trigger for changed resources. The true value proposition is:
+The optimized pipeline's "100% processing savings" is an artifact of unchanged data during a single evaluation window, not evidence of monitoring efficiency. In a real deployment with actual changes, extraction would trigger for changed resources. The true value proposition is:
 - **Avoiding extraction/QA for unchanged resources** (proven in synthetic tests)
-- **Using conditional requests to reduce bandwidth** (43.3% of resources returned 304)
+- **Using conditional requests to reduce bandwidth** (8 of 20 Strategy A returned 304)
 - **Falling back safely** when signals are unavailable
-
-## 6. Requests, Bytes, Latency, Processing Jobs
-
-### Monitoring costs (optimized run)
-- Unique resources checked: 117
-- Total HTTP requests: 117
-- Total bytes transferred: 55.3MB
-- Total elapsed: 225s
-- Failures: 37
-- Retries: 0
-- Direct API vs browser: 81 direct, 4 browser-needed, 32 unresolved
-
-### Downstream work
-- Full extraction jobs triggered: 0 (no changes detected)
-- Extraction jobs skipped: 117 (all)
-- QA jobs triggered: 0
-- QA jobs skipped: 117 (all)
-- Resources requiring fallback: 4 (browser)
-- Resources left unresolved: 32
-- Unknown outcomes: 97
-
-### Correctness
-- Known unchanged cases correctly skipped: 20 (conditional 304 or identical body)
-- Known changes detected: 0 (no real changes during evaluation)
-- False-positive triggers: 4 (ignored conditional headers)
-- Potential missed changes: 0
-- Unknown outcomes: 97
-- Baseline or reconciliation discrepancies: 0
 
 ## 7. Measured and Simulated Work Avoided
 
 ### Measured (actual)
-- 10 resources returned 304 → no body downloaded for conditional request
-- 50 partial extractions → extraction incomplete, no full QA
-- 2 failed requests → no extraction attempted
-- 20 resources skipped in optimized run (all inconclusive in audit)
+- 8 resources returned 304 → no body downloaded for conditional request
+- 12 resources returned 200 with changed validator but unchanged body (false positive detection)
+- 80 extraction attempts in control, 0 in optimized (no changes detected)
+- 19 QA calls in control, 0 in optimized
 
 ### Simulated (not observed)
-- Extraction jobs avoided: 117 (estimated, based on skip decisions)
-- QA jobs avoided: 117 (estimated)
+- Extraction jobs avoided: 80 (estimated, based on skip decisions)
+- QA jobs avoided: 19 (estimated)
 - Browser jobs avoided: 4 (Strategy D not executed)
 
 **Note:** These are simulated savings. Real savings require live observation over multiple time periods with actual changes.
 
 ## 8. Known Changes Detected and Failures
 
-- **0 real location-data changes detected** during evaluation (no stores changed in 3 observation rounds)
+- **0 real location-data changes detected** during evaluation (no stores changed in evaluation window)
 - **2 request failures:** bq (HTTP 503), hm (HTTP 403)
 - **50 partial extractions:** 36 html_unextractable, 9 no_location_features, 5 unsupported_content_type, 2 request_failed
 - **0 genuine data-quality failures** in successfully extracted data
+- **37 failures** in monitoring cycle (HTTP errors, DNS, auth)
 
 ## 9. Reconciliation Behavior
 
@@ -185,6 +219,7 @@ The optimized pipeline's "100% processing savings" is an artifact of unchanged d
 - Additional requests/bytes/latency recorded
 - Configurable interval (default 168h)
 - Tested with mocks: detects missed changes, preserves baseline on failure
+- **Note:** Reconciliation has bugs — does not load baselines, does not switch to Strategy B before execution
 
 ## 10. Remaining Risks and Inconclusive Results
 
@@ -196,17 +231,25 @@ The optimized pipeline's "100% processing savings" is an artifact of unchanged d
 6. **Scaling unverified** — prototype tested on 100 spiders; behavior at 8,000+ sites unknown
 7. **Concurrent live extraction untested** — tested with mocked responses only
 8. **Reconciliation unverified** — tested with mocks; real missed-change detection not observed
-9. **97 unknown states** — most resources lack validators or baselines; cannot determine change status
+9. **109 unknown states** — most resources lack validators or baselines; cannot determine change status
+10. **Resource identity not normalized** — URL normalization, HTTP method, POST body ignored
+11. **POST endpoints probed with empty body** — incorrect for POST resources
+12. **Tokenized URLs requested redacted** — monitoring fails for tokenized endpoints
+13. **Fingerprint includes unstable IDs** — false changes when IDs change
+14. **Limited field recognition** — only specific address fields recognized
+15. **Duplicates not deduplicated** in fingerprints
+16. **Coordinate precision** — 6-decimal rounding misses tiny shifts
 
 ## Recommendation
 
 **Conditional HTTP should be used as a verified-subset-only strategy, not as a general fallback.**
 
 - Only 14 of 117 resources (12%) are "promising" (verified location data + ETag present)
-- 97 of 117 (82.9%) have no usable validator → require direct payload comparison
+- 109 of 117 (93.2%) have no usable validator → require direct payload comparison
 - 4 resources ignore conditional headers → cannot rely on 304 alone
 - 4 resources need browser rendering → Strategy D
 - 32 resources are unresolved → Strategy E
+- 15 resources have templated URLs → unmonitorable without parameter resolution
 
 **Next steps for production:**
 1. Run live_observe.py weekly to build time series
@@ -217,6 +260,11 @@ The optimized pipeline's "100% processing savings" is an artifact of unchanged d
 6. Measure full scraping pipeline cost vs conditional request cost
 7. Implement browser fallback for 4 JS-rendered sites
 8. Scale to 8,000+ sites with justified sampling approach
+9. Fix resource identity (URL normalization, HTTP method, POST body)
+10. Fix fingerprint stability (exclude unstable IDs, recognize more address fields)
+11. Fix reconciliation (load baselines, switch to Strategy B)
+12. Fix POST endpoint handling (capture request body)
+13. Fix tokenized URL handling (de-redact before requesting)
 
 ## Test Results
 
@@ -226,18 +274,23 @@ The optimized pipeline's "100% processing savings" is an artifact of unchanged d
 
 ## Evidence Labels
 
-- **A. Verified live behavior:** 81 resources monitored, 19 successful extractions, 10 unchanged (304), 2 request failures
+- **A. Verified live behavior:** 80 extraction attempts, 19 QA calls, 8 conditional 304s, 2 request failures
 - **B. Synthetic scenario results:** 11 E2E tests, 13 synthetic scenarios, 45 unit tests
-- **C. Measured operational improvements:** 52MB transferred, 110s elapsed, 19 extractions triggered, 62 skipped (simulated)
+- **C. Measured operational improvements:** 54.7MB transferred, 186s elapsed, 80 extractions attempted, 8 skipped
 - **D. Unproven hypotheses:** ETag reliability, provider webhooks, browser fallback, scaling, cost savings
 
 ## Honest Assessment
 
-The prototype demonstrates the **architecture** for cost reduction but does not yet prove **measurable savings** in a real-world scenario. The "100% processing savings" is an artifact of unchanged data during a single evaluation window. Real savings require:
+The prototype demonstrates the **architecture** for cost reduction but does not yet prove **measurable savings** in a real-world scenario. The "100% processing savings" is an artifact of unchanged data during a single evaluation window, not evidence of monitoring efficiency. Network savings are actually negative (optimized uses more requests than control).
 
-1. Live observation over multiple time periods
-2. Actual location-data changes to test detection
-3. A valid conventional-scraping baseline for comparison
-4. Broader sampling (8,000+ sites, not 100)
+The architecture is sound and the routing logic is correct, but the empirical evidence is insufficient to claim production-ready cost reduction. Multiple bugs were identified by independent sub-agent review and fixed, but significant issues remain:
 
-The architecture is sound and the routing logic is correct, but the empirical evidence is insufficient to claim production-ready cost reduction. The next phase should focus on live observation and change detection validation, not additional features.
+1. **Conditional requests use stored ETag** (fixed) but ETag reliability is unproven
+2. **304 responses are treated as proof of unchanged location data** (still present, acknowledged as unverified assumption)
+3. **Resource identity is not properly normalized** (URL, method, body)
+4. **Fingerprints include unstable IDs** (false change detection)
+5. **Reconciliation is broken** (doesn't load baselines)
+6. **POST endpoints are probed with empty body**
+7. **Tokenized URLs are requested redacted**
+
+The next phase should focus on live observation and change detection validation, not additional features. Data correctness takes precedence over positive savings numbers.
